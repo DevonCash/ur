@@ -30,7 +30,7 @@ develops; none of them is load-bearing alone.
 
 ```
 Turn start → yields collected (food, production, gold, science)
-  → player: move units, set settlement production, pick research, build improvements
+  → player: move units, set settlement production, pick research, choose settlement projects
   → end turn → AI turns → world events (floods, border growth) → next turn
 ```
 
@@ -52,8 +52,8 @@ not a whole district. Consequences, all first guesses for tuning:
   few river valleys and the land between them.
 - **Terrain reads at human scale.** Single hills, fords, groves and marsh patches matter for
   movement and battle; armies span several tiles, so formations and frontage emerge.
-- **Risk: busywork.** More tiles means more improvements. Settlements auto-develop worked tiles
-  (§4.10); workers handle only roads, mines and special works.
+- **Risk: busywork.** More tiles means more improvements. There are no worker units: worked
+  tiles auto-develop and other improvements are settlement projects (§4.10).
 - **Risk: performance.** ~4× the tiles of an equivalent Civ map. Rendering is chunked and culled;
   AI site scoring samples candidates instead of scanning every tile.
 
@@ -93,7 +93,7 @@ Settlements replace fixed cities. They climb a tier ladder by **sustaining** pop
 
 | Tier    | Pop to reach | Footprint (tiles) | Work radius | Building slots | Unlocks                      |
 |---------|--------------|-------------------|-------------|----------------|------------------------------|
-| Camp    | 1            | 1                 | 2           | 0              | Migrants, Worker, Scout      |
+| Camp    | 1            | 1                 | 2           | 0              | Migrants, Scout              |
 | Village | 3            | 1                 | 3           | 2              | Military units, borders grow |
 | Town    | 6            | 3                 | 4           | 4              | Walls, ranged attack         |
 | City    | 10           | 7                 | 5           | 6              | Wonders, advanced units      |
@@ -149,7 +149,6 @@ Prototype roster:
 | Unit      | Role     | Str | Ranged | Moves | Unlock      |
 |-----------|----------|-----|--------|-------|-------------|
 | Migrants  | Civilian | –   | –      | 4     | start       |
-| Worker    | Civilian | –   | –      | 4     | start       |
 | Scout     | Recon    | 4   | –      | 6     | start       |
 | Warrior   | Melee    | 8   | –      | 4     | start       |
 | Slinger   | Ranged   | 5   | 7 (r3) | 4     | Hunting     |
@@ -186,11 +185,19 @@ Each tech unlocks units, buildings or improvements. Cost grows with tech count.
 Buildings (prototype): Granary, Shrine, Barracks, Walls, Workshop, Library, Market, Ziggurat
 (national wonder, capital only). Each takes a building slot (§4.5).
 
-Improvements: Farm, Mine, Pasture, Lumber Camp, Road.
+Improvements: Farm, Mine, Pasture, Lumber Camp, Road. There is **no worker unit**: in Civ the
+worker matters for a few early turns and is then automated or ignored, and at Ur's finer scale it
+would be pure busywork. Improvements come from settlements instead:
 
-**Auto-development** (scale consequence, §4.1): a worked flat tile becomes a Farm, and a worked
-pasture-resource tile becomes a Pasture, after a few turns without a worker. Workers build
-roads, mines and lumber camps, and can rush auto-development.
+- **Auto-development**: a worked flat tile becomes a Farm, and a worked pasture-resource tile a
+  Pasture, after a few turns of being worked.
+- **Projects**: Mine, Lumber Camp, Road and Repair are items in a settlement's production list,
+  targeted at a tile within its borders. They cost production, and while one runs it takes
+  **1 population off tile work** as labour — improving land competes with food, growth and
+  migrants (pillar 3). A project can also rush an auto-development.
+- **Auto-roads**: settlements in the same civilization slowly connect along the cheapest route.
+  Road projects aim a road somewhere specific.
+- **Pillage**: military units pillage enemy improvements; repair is a cheap project.
 
 Resources (prototype): Wheat, Cattle, Stone, Copper, Horses. Copper and Horses gate Spearman and
 Chariot respectively (strategic resources, simple yes/no gating in prototype).
@@ -234,7 +241,8 @@ Prototype: war/peace state and open/closed borders per neighbour. Declare war, p
 - Migration log and a map overlay showing net flows between settlements.
 - Tech tree screen.
 - Hover tooltips on everything that has a number.
-- Unit action bar: move, attack, fortify, sleep, skip, build improvement, found camp.
+- Unit action bar: move, attack, fortify, sleep, skip, pillage, found camp.
+- Project targeting: pick a project, then a tile on the map (valid tiles highlighted).
 - Flat colour only — no gradients. Hex art is flat-shaded vector shapes in the prototype.
 
 ## 6. Technical architecture
@@ -318,7 +326,7 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 | 1 | Map                    | Seeded map gen, render, pan/zoom, hover tile info              |
 | 2 | Units & movement       | Select, pathfind, move, fog of war, end turn                   |
 | 3 | Settlements            | Found camp, yields, growth, tiers, production, borders         |
-| 4 | Tech & improvements    | Research, workers, improvements, resources                     |
+| 4 | Tech & improvements    | Research, auto-development, projects, resources                |
 | 5 | Combat                 | Melee/ranged, preview, healing, settlement capture             |
 | 6 | AI                     | Rule-based AI that expands and fights                          |
 | 7 | Migration              | Migrants, drift, cross-civ flows, border policy, log           |
@@ -334,7 +342,7 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
    adds tactical texture and cost (tiles, busywork, AI time).
 5. Turn limit and map size — is 150 turns on 80×52 the right length for 60–90 minutes?
 6. Should migration (M7) move earlier, since tiers depend on population pressure?
-7. Does auto-development remove too much agency from tile improvement?
+7. Do auto-development and projects leave enough agency over tile improvement?
 
 ## 10. Idea backlog
 

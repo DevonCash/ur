@@ -40,7 +40,10 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Tech DAG data + research
 - [ ] Tech tree screen
 - [ ] Auto-development of worked tiles (farm, pasture)
-- [ ] Worker build actions: mine, lumber camp, road, rush auto-development
+- [ ] Settlement projects: mine, lumber camp, road, repair, rush; tile targeting UI
+- [ ] Project labour: running project removes 1 pop from tile work
+- [ ] Auto-roads between same-civ settlements
+- [ ] Pillage action for military units
 - [ ] Resources + strategic gating (copper, horses)
 - [ ] Gold, upkeep, rush-buy
 - [ ] Stability
