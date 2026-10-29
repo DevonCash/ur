@@ -10,7 +10,7 @@
   import HelpScreen from './HelpScreen.svelte';
   import LogScreen from './LogScreen.svelte';
   import SettlementPanel from './SettlementPanel.svelte';
-  import { act, endTurn, flash, gs, refresh, selectNextUnit, setCenterHook, setRenderHook, ui } from './store.svelte';
+  import { act, endTurn, flash, focusOn, gs, refresh, selectNextUnit, setFocusHook, setRenderHook, ui } from './store.svelte';
   import TechScreen from './TechScreen.svelte';
   import TileTooltip from './TileTooltip.svelte';
   import TopBar from './TopBar.svelte';
@@ -25,6 +25,14 @@
     if (!ui.projectMode) return null;
     const st = settlementById(gs(), ui.projectMode.settlement);
     return st ? projectTargets(gs(), st, ui.projectMode.project) : [];
+  }
+
+  /** Screen space covered by the top bar and side panel. */
+  function uiInsets() {
+    const narrow = window.innerWidth <= 640;
+    return narrow
+      ? { top: 130, right: 0, bottom: window.innerHeight * 0.45, left: 0 }
+      : { top: 64, right: 360, bottom: 0, left: 0 };
   }
 
   function cancelProject() {
@@ -46,7 +54,7 @@
     await renderer.init(host);
     ready = true;
     setRenderHook(() => ready && renderer.render(gs(), overlay()));
-    setCenterHook((t) => renderer.centerOn(gs(), t));
+    setFocusHook((t) => renderer.focus(gs(), t, uiInsets()));
     const s = gs();
     const start = s.units.find((u) => u.civId === 0)?.tile ?? s.settlements.find((x) => x.civId === 0)?.center ?? 0;
     renderer.centerOn(s, start);
@@ -135,6 +143,7 @@
       } else {
         ui.selectedUnit = next.id;
         ui.selectedSettlement = null;
+        focusOn?.(next.tile);
       }
       refresh();
       return;

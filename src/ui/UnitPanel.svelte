@@ -50,7 +50,7 @@
       {#if view.mil}
         <dt>Strength</dt><dd>{view.def.strength}{#if view.def.ranged} · ranged {view.def.ranged} (range {view.def.range}){/if}</dd>
         <dt>Rank</dt><dd>{view.rank} · {view.xp}</dd>
-        <dt>Home</dt><dd>{view.home} <span class="muted">(feeds it 1 food)</span></dd>
+        <dt>Home</dt><dd>{view.home}{#if u.home !== null}{' '}<span class="muted">(feeds it 1 food)</span>{/if}</dd>
       {/if}
       {#if u.fortify >= 2}<dt>Status</dt><dd>Fortified (+25%)</dd>{:else if u.fortify === 1}<dt>Status</dt><dd>Fortifying</dd>{/if}
       {#if u.sleeping}<dt>Status</dt><dd>Sleeping</dd>{/if}

@@ -147,12 +147,13 @@ export function selectNextUnit(cycle = true) {
   ui.selectedUnit = ids[(i + 1) % ids.length];
   ui.selectedSettlement = null;
   refresh();
-  centerOn?.(game!.units.find((u) => u.id === ui.selectedUnit)!.tile);
+  focusOn?.(game!.units.find((u) => u.id === ui.selectedUnit)!.tile);
 }
 
-export let centerOn: ((tile: number) => void) | null = null;
-export function setCenterHook(fn: (tile: number) => void) {
-  centerOn = fn;
+/** Bring a tile into view (glides only when it is off-screen); set by the map view. */
+export let focusOn: ((tile: number) => void) | null = null;
+export function setFocusHook(fn: (tile: number) => void) {
+  focusOn = fn;
 }
 
 export function militaryFirst(unitIds: number[]): number[] {

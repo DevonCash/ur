@@ -87,6 +87,23 @@ export class MapRenderer {
     this.viewport.moveCenter(x, y);
   }
 
+  /**
+   * Glide to a tile only if it is off-screen or near the edge of the visible area.
+   * `inset` is screen space covered by UI (top bar, side panel) to treat as off-screen.
+   */
+  focus(s: GameState, tile: number, inset: { top: number; right: number; bottom: number; left: number }) {
+    const [x, y] = tileCenter(s.w, tile, HEX);
+    const p = this.viewport.toScreen(x, y);
+    const margin = 60;
+    const w = this.viewport.screenWidth;
+    const h = this.viewport.screenHeight;
+    const inside =
+      p.x >= inset.left + margin && p.x <= w - inset.right - margin && p.y >= inset.top + margin && p.y <= h - inset.bottom - margin;
+    if (inside) return;
+    this.viewport.plugins.remove('animate');
+    this.viewport.animate({ position: { x, y }, time: 350, ease: 'easeInOutSine', removeOnInterrupt: true });
+  }
+
   private hexPoly(s: GameState, i: number, inset = 0): number[] {
     const [cx, cy] = tileCenter(s.w, i, HEX);
     const pts: number[] = [];
