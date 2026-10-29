@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { attack } from '../src/core/combat';
 import { TIER_TURNS } from '../src/core/data';
-import { hooks, newGame, startTurn } from '../src/core/game';
+import { hooks, newGame, projectTargets, startTurn } from '../src/core/game';
 import { neighbour } from '../src/core/hex';
 import { resolveDrift } from '../src/core/migration';
 import { computeReach } from '../src/core/settlement';
@@ -153,5 +153,22 @@ describe('architecture', () => {
       expect(src).not.toMatch(/\b(document|window)\./);
       expect(src).not.toMatch(/from ['"](pixi\.js|svelte|\.\.\/ui|\.\.\/render)/);
     }
+  });
+});
+
+describe('project targets (#9)', () => {
+  it('lists only tiles where the project is allowed', () => {
+    const s = flatState();
+    const st = foundAt(s, 0, cr(s, 10, 10), 3);
+    // nothing pillaged and no improvement techs yet: no valid targets
+    expect(projectTargets(s, st, 'repair')).toEqual([]);
+    expect(projectTargets(s, st, 'rushdev')).toEqual([]);
+    // a hill in territory is a valid mine target once Stoneworking is known
+    const hill = st.worked[0] ?? cr(s, 11, 10);
+    s.tiles[hill].feature = 'hills';
+    s.civs[0].techs.push('stoneworking');
+    expect(projectTargets(s, st, 'mine')).toEqual([hill]);
+    s.civs[0].techs.push('tilling');
+    expect(projectTargets(s, st, 'rushdev').length).toBeGreaterThan(0);
   });
 });

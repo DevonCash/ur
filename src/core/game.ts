@@ -6,7 +6,7 @@ import {
   AUTO_DEV_TURNS, BUILDING, HINTERLAND_RANGE, MIN_SETTLEMENT_DISTANCE, PRISONER_SETTLE_TURNS, PROJECT,
   RANKS, RUSH_GOLD_PER_PROD, TECH, TECH_ORDER, TIER_POOL_CAP, TIER_POOL_REFILL, TIER_POP, TIER_TURNS, TURN_LIMIT,
   UNIT, growthThreshold, rankOf, upgradeTarget,
-  type BuildingId, type ImprovementId, type TechId, type UnitType,
+  type ImprovementId, type ProjectKind, type TechId, type UnitType,
 } from './data';
 import { distance, neighbour } from './hex';
 import { resolveDrift, sendRefugees, stability, stabilityBand } from './migration';
@@ -288,6 +288,36 @@ export function projectAllowed(s: GameState, st: Settlement, item: Extract<Produ
       return t.pillaged ? null : 'Nothing to repair';
     case 'rushdev':
       return !t.improvement && autoDevImprovement(s, civ, item.tile) ? null : 'Nothing to develop';
+  }
+}
+
+/** Every tile where the project could be placed now (DESIGN §8.3). */
+export function projectTargets(s: GameState, st: Settlement, project: ProjectKind): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < s.tiles.length; i++) {
+    if (ownerCiv(s, i) !== st.civId) continue;
+    if (!projectAllowed(s, st, { kind: 'project', project, tile: i })) out.push(i);
+  }
+  return out;
+}
+
+/** Why a project button is unavailable, or null if it has at least one target. */
+export function projectUnavailable(s: GameState, st: Settlement, project: ProjectKind): string | null {
+  const civ = s.civs[st.civId];
+  const missing = PROJECT[project].tech.filter((t) => !hasTech(civ, t));
+  if (missing.length) return `Needs ${missing.map((t) => TECH[t].name).join(', ')}`;
+  if (projectTargets(s, st, project).length) return null;
+  switch (project) {
+    case 'mine':
+      return 'No unmined hills in territory';
+    case 'lumber':
+      return 'No forest without a lumber camp in territory';
+    case 'road':
+      return 'No road-less tiles in territory';
+    case 'repair':
+      return 'No pillaged tiles';
+    case 'rushdev':
+      return hasTech(civ, 'tilling') || hasTech(civ, 'herding') ? 'No tiles to develop' : 'Needs Tilling or Herding';
   }
 }
 

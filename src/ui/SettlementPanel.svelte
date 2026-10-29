@@ -3,7 +3,7 @@
     BUILDING, BUILDING_ORDER, PROJECT, RUSH_GOLD_PER_PROD, TIER_NAMES, TIER_POOL_CAP, TIER_POP, TIER_SLOTS, TIER_TURNS,
     TRAINABLE, UNIT, growthThreshold, type ProjectKind,
   } from '../core/data';
-  import { itemCost, unitAllowed } from '../core/game';
+  import { itemCost, projectUnavailable, unitAllowed } from '../core/game';
   import { attractTerms } from '../core/migration';
   import {
     activeBuildings, buildingAllowed, garrison, maxHp, prisonersHeld, settlementYields, tierPopulation, unitsHomed,
@@ -28,7 +28,7 @@
       ok: buildingAllowed(s, st, b),
       tech: BUILDING[b].tech.every((t) => hasTech(civ, t)),
     }));
-    const projects = (Object.keys(PROJECT) as ProjectKind[]).map((p) => ({ p, ok: PROJECT[p].tech.every((t) => hasTech(civ, t)) }));
+    const projects = (Object.keys(PROJECT) as ProjectKind[]).map((p) => ({ p, why: projectUnavailable(s, st, p) }));
     const a = attractTerms(s, st);
     return {
       st, civ, y, prodCost, remaining, tp,
@@ -129,8 +129,14 @@
           {/if}
         {/each}
         <span class="label">Projects (then pick a tile)</span>
-        {#each view.projects as { p, ok } (p)}
-          <button disabled={!ok} onclick={() => (ui.projectMode = { settlement: st.id, project: p })}>{PROJECT[p].name} · {PROJECT[p].cost}{p === 'road' ? '/tile' : ''}</button>
+        {#each view.projects as { p, why } (p)}
+          <button
+            disabled={!!why}
+            title={why ?? ''}
+            onclick={() => {
+              ui.projectMode = { settlement: st.id, project: p };
+              refresh();
+            }}>{PROJECT[p].name} · {PROJECT[p].cost}{p === 'road' ? '/tile' : ''}</button>
         {/each}
       </div>
 

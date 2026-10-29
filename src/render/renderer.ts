@@ -32,6 +32,8 @@ export interface Overlay {
   selectedSettlement: number | null;
   hoverTile: number | null;
   projectMode: boolean;
+  /** valid tiles for the project being placed */
+  projectTargets: number[] | null;
 }
 
 export class MapRenderer {
@@ -353,8 +355,12 @@ export class MapRenderer {
         }
       }
     }
+    if (o.projectTargets) {
+      for (const i of o.projectTargets) c.poly(this.hexPoly(s, i, 2)).fill({ color: 0xffe066, alpha: 0.28 }).stroke({ width: 1.5, color: 0xffe066 });
+    }
     if (o.hoverTile !== null && o.hoverTile >= 0) {
-      c.poly(this.hexPoly(s, o.hoverTile, 1)).stroke({ width: 2, color: o.projectMode ? 0xffe066 : 0xffffff, alpha: 0.9 });
+      const bad = o.projectTargets && !o.projectTargets.includes(o.hoverTile);
+      c.poly(this.hexPoly(s, o.hoverTile, 1)).stroke({ width: 2, color: bad ? 0xd8432e : o.projectMode ? 0xffe066 : 0xffffff, alpha: 0.9 });
     }
   }
 }

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { canAttack, settlementCanShoot } from '../core/combat';
-  import { canFound } from '../core/game';
+  import { PROJECT } from '../core/data';
+  import { canFound, projectAllowed, projectTargets } from '../core/game';
   import { settlementAtTile, settlementById, unitById } from '../core/world';
   import { MapRenderer } from '../render/renderer';
   import DiplomacyScreen from './DiplomacyScreen.svelte';
@@ -9,7 +10,7 @@
   import HelpScreen from './HelpScreen.svelte';
   import LogScreen from './LogScreen.svelte';
   import SettlementPanel from './SettlementPanel.svelte';
-  import { act, endTurn, refresh, selectNextUnit, setCenterHook, setRenderHook, gs, ui } from './store.svelte';
+  import { act, endTurn, flash, gs, refresh, selectNextUnit, setCenterHook, setRenderHook, ui } from './store.svelte';
   import TechScreen from './TechScreen.svelte';
   import TileTooltip from './TileTooltip.svelte';
   import TopBar from './TopBar.svelte';
@@ -20,12 +21,24 @@
   let ready = false;
   let down: { x: number; y: number; button: number } | null = null;
 
+  function currentTargets(): number[] | null {
+    if (!ui.projectMode) return null;
+    const st = settlementById(gs(), ui.projectMode.settlement);
+    return st ? projectTargets(gs(), st, ui.projectMode.project) : [];
+  }
+
+  function cancelProject() {
+    ui.projectMode = null;
+    refresh();
+  }
+
   function overlay() {
     return {
       selectedUnit: ui.selectedUnit,
       selectedSettlement: ui.selectedSettlement,
       hoverTile: ui.hoverTile,
       projectMode: !!ui.projectMode,
+      projectTargets: currentTargets(),
     };
   }
 
@@ -94,8 +107,16 @@
     const s = gs();
     if (ui.projectMode) {
       const pm = ui.projectMode;
+      const st = settlementById(s, pm.settlement);
+      const item = { kind: 'project' as const, project: pm.project, tile };
+      const why = st ? projectAllowed(s, st, item) : 'No settlement';
+      // invalid tiles keep the mode active and explain why
+      if (why) {
+        flash(why);
+        return;
+      }
       ui.projectMode = null;
-      act({ type: 'setProduction', settlement: pm.settlement, item: { kind: 'project', project: pm.project, tile } });
+      act({ type: 'setProduction', settlement: pm.settlement, item });
       return;
     }
     const own = s.units.filter((u) => u.tile === tile && u.civId === 0);
@@ -194,7 +215,11 @@
   </aside>
   <TileTooltip />
   {#if ui.projectMode}
-    <div class="banner panel">Pick a tile for the project · right-click to cancel</div>
+    {@const pm = ui.projectMode}
+    <div class="banner panel row">
+      <span>{PROJECT[pm.project].name} ({PROJECT[pm.project].cost}{pm.project === 'road' ? '/tile' : ''}): pick a highlighted tile in {settlementById(gs(), pm.settlement)?.name}'s territory</span>
+      <button onclick={cancelProject}>Cancel</button>
+    </div>
   {/if}
   {#if ui.message}
     <div class="toast panel">{ui.message}</div>
