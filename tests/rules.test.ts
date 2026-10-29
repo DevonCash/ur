@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { attack } from '../src/core/combat';
-import { TIER_TURNS } from '../src/core/data';
-import { hooks, newGame, projectTargets, startTurn } from '../src/core/game';
+import { TECH_ORDER, TIER_TURNS } from '../src/core/data';
+import { hooks, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
 import { neighbour } from '../src/core/hex';
 import { resolveDrift } from '../src/core/migration';
 import { computeReach } from '../src/core/settlement';
@@ -170,5 +170,36 @@ describe('project targets (#9)', () => {
     expect(projectTargets(s, st, 'mine')).toEqual([hill]);
     s.civs[0].techs.push('tilling');
     expect(projectTargets(s, st, 'rushdev').length).toBeGreaterThan(0);
+  });
+});
+
+describe('turn blockers (#1, #5)', () => {
+  it('lists idle units, missing research and empty production, in that order', () => {
+    const s = flatState();
+    const st = foundAt(s, 0, cr(s, 10, 10), 3);
+    const w = createUnit(s, 0, 'warrior', cr(s, 12, 10), st.id);
+    expect(turnBlockers(s, 0).map((b) => b.kind)).toEqual(['unit', 'research', 'production']);
+
+    // a unit that moved but still has moves left is still idle
+    w.moves = 2;
+    w.acted = true;
+    expect(turnBlockers(s, 0)[0]).toEqual({ kind: 'unit', id: w.id });
+
+    // skip, sleep and fortify all clear it
+    w.moves = 0;
+    expect(turnBlockers(s, 0).some((b) => b.kind === 'unit')).toBe(false);
+    w.moves = 4;
+    w.sleeping = true;
+    expect(turnBlockers(s, 0).some((b) => b.kind === 'unit')).toBe(false);
+
+    s.civs[0].researching = 'tilling';
+    st.production = { kind: 'unit', unit: 'warrior' };
+    expect(turnBlockers(s, 0)).toEqual([]);
+  });
+
+  it('does not ask for research once every tech is known', () => {
+    const s = flatState();
+    s.civs[0].techs = TECH_ORDER.slice();
+    expect(turnBlockers(s, 0).some((b) => b.kind === 'research')).toBe(false);
   });
 });

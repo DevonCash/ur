@@ -3,7 +3,7 @@
   import { stability, stabilityTerms } from '../core/migration';
   import { activeBuildings, settlementYields } from '../core/settlement';
   import { civSettlements } from '../core/world';
-  import { endTurn, idleUnits, selectNextUnit, gs, ui } from './store.svelte';
+  import { endTurn, endTurnLabel, gs, idleUnits, selectNextUnit, ui } from './store.svelte';
 
   const view = $derived.by(() => {
     ui.tick;
@@ -29,6 +29,7 @@
       research: civ.researching ? `${TECH[civ.researching].name} ${civ.science}/${TECH[civ.researching].cost}` : 'Choose research',
       researchPct: civ.researching ? Math.min(100, (100 * civ.science) / TECH[civ.researching].cost) : 0,
       idle: idleUnits().length,
+      endLabel: endTurnLabel(),
       offers,
     };
   });
@@ -51,7 +52,7 @@
   {#if view.idle > 0}
     <button onclick={() => selectNextUnit()} title="Next unit needing orders (N)">{view.idle} idle</button>
   {/if}
-  <button class="primary" disabled={ui.busy} onclick={endTurn} title="End turn (E)">End turn</button>
+  <button class="primary" class:blocked={view.endLabel !== 'End turn'} disabled={ui.busy} onclick={endTurn} title="End turn (E)">{view.endLabel}</button>
 </header>
 
 <style>
@@ -104,6 +105,11 @@
   }
   .spacer {
     flex: 1;
+  }
+  .primary.blocked {
+    background: var(--panel-2);
+    border-color: var(--warn);
+    color: var(--warn);
   }
   .badge {
     margin-left: 6px;

@@ -703,6 +703,26 @@ export function endTurn(s: GameState): void {
   checkElimination(s);
 }
 
+// Turn blockers --------------------------------------------------------------------------------
+
+export type TurnBlocker = { kind: 'unit'; id: number } | { kind: 'research' } | { kind: 'production'; id: number };
+
+/** A unit needs orders while it has moves left and no standing order (sleep, fortify). */
+export function needsOrders(u: Unit): boolean {
+  return u.moves > 0 && !u.sleeping && u.fortify === 0;
+}
+
+/** What must be decided before a civ may end its turn: idle units, research, empty production. */
+export function turnBlockers(s: GameState, civId: number): TurnBlocker[] {
+  const out: TurnBlocker[] = [];
+  for (const u of civUnits(s, civId)) if (needsOrders(u)) out.push({ kind: 'unit', id: u.id });
+  const civ = s.civs[civId];
+  const canResearch = TECH_ORDER.some((t) => !civ.techs.includes(t) && TECH[t].requires.every((r) => civ.techs.includes(r)));
+  if (!civ.researching && canResearch) out.push({ kind: 'research' });
+  for (const st of civSettlements(s, civId)) if (!st.production) out.push({ kind: 'production', id: st.id });
+  return out;
+}
+
 // Actions -----------------------------------------------------------------------------------
 
 export type Action =
