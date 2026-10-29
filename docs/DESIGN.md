@@ -603,6 +603,9 @@ score = 4 × people (settlements and units)
 
 - Full-window map canvas with pan (drag), zoom (wheel/pinch), and keyboard shortcuts.
 - Top bar: yields per turn, stability, current research, turn number, End Turn button.
+- End Turn is **blocked** while a unit needs orders (moves left, no standing order) or no research is
+  chosen; the button names the blocker and takes you to it. Settlements producing nothing are a
+  **warning** only ("N not producing" in the top bar).
 - Right panel: selected unit or settlement.
 - Settlement screen: tier progress bars, reach overlay, tile yields, worked and locked tiles,
   production list, building slots, migration lever.
