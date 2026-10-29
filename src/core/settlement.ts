@@ -7,14 +7,17 @@ import {
 import { neighbour } from './hex';
 import type { GameState, Settlement } from './types';
 import {
-  addYields, dijkstra, grid, isLand, isMilitary, isPassable, tileYields,
+  addYields, dijkstra, economicStepCost, grid, isLand, isMilitary, isPassable, tileYields,
 } from './world';
 
 // Reach & territory --------------------------------------------------------------
 
 /** Tile → travel cost for every tile in reach (land via Dijkstra, water adjacent to reached land). */
 export function computeReach(s: GameState, st: Settlement): Map<number, number> {
-  const land = dijkstra(s, st.footprint, { maxCost: TIER_REACH[st.tier] });
+  const land = dijkstra(s, st.footprint, {
+    maxCost: TIER_REACH[st.tier],
+    cost: (a, b, d) => economicStepCost(s, st.civId, a, b, d),
+  });
   const out = new Map(land);
   const g = grid(s);
   for (const [i, c] of land) {

@@ -7,7 +7,7 @@ export type ImprovementId = 'farm' | 'pasture' | 'mine' | 'lumber';
 export type UnitType = 'migrants' | 'scout' | 'warrior' | 'slinger' | 'chariot' | 'spearman' | 'bowman' | 'swordsman';
 export type BuildingId = 'shrine' | 'granary' | 'barracks' | 'walls' | 'workshop' | 'library' | 'market' | 'ziggurat';
 export type TechId =
-  | 'foraging' | 'hunting' | 'herding' | 'tilling' | 'stoneworking' | 'archery' | 'wheel'
+  | 'foraging' | 'reedboats' | 'hunting' | 'herding' | 'tilling' | 'stoneworking' | 'archery' | 'wheel'
   | 'irrigation' | 'pottery' | 'masonry' | 'bronze' | 'writing' | 'mathematics' | 'ironworking';
 
 export interface Yields {
@@ -190,6 +190,7 @@ export interface TechDef {
 
 export const TECH: Record<TechId, TechDef> = {
   foraging: { name: 'Foraging', cost: 0, requires: [], unlocks: 'Start' },
+  reedboats: { name: 'Reed Boats', cost: 20, requires: ['foraging'], unlocks: 'Travel along rivers counts as road for reach, hinterland deliveries and road routing' },
   hunting: { name: 'Hunting', cost: 20, requires: ['foraging'], unlocks: 'Slinger' },
   herding: { name: 'Herding', cost: 20, requires: ['foraging'], unlocks: 'Pasture' },
   tilling: { name: 'Tilling', cost: 20, requires: ['foraging'], unlocks: 'Farm' },

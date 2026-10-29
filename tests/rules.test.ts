@@ -338,3 +338,40 @@ describe('economy revision (#10, #11)', () => {
     expect(settlementYields(s, st).foodNet).toBe(f.net);
   });
 });
+
+describe('rivers as transport (#3)', () => {
+  /** A river running east along the edges between row 10 and row 11. */
+  function riverMap() {
+    const s = flatState(40, 22);
+    const g = grid(s);
+    for (let col = 2; col < 38; col++) {
+      const a = cr(s, col, 10);
+      for (const d of [1, 2]) {
+        const b = neighbour(g, a, d);
+        s.tiles[a].river |= 1 << d;
+        s.tiles[b].river |= 1 << ((d + 3) % 6);
+      }
+    }
+    return s;
+  }
+
+  it('with Reed Boats, travel along a river extends reach; without it, nothing changes', () => {
+    const s = riverMap();
+    const st = foundAt(s, 0, cr(s, 10, 10), 3);
+    const before = computeReach(s, st);
+    s.civs[0].techs.push('reedboats');
+    const after = computeReach(s, st);
+    expect(after.size).toBeGreaterThan(before.size);
+    expect(after.get(cr(s, 14, 10))!).toBeLessThan(before.get(cr(s, 14, 10)) ?? Infinity);
+  });
+
+  it('does not speed up unit movement', () => {
+    const s = riverMap();
+    foundAt(s, 0, cr(s, 3, 3), 1);
+    s.civs[0].techs.push('reedboats');
+    const u = createUnit(s, 0, 'warrior', cr(s, 10, 10), null);
+    s.civs[0].vis.fill(1);
+    const p = pathFor(s, u, cr(s, 14, 10))!;
+    expect(p.cost).toBe(4);
+  });
+});

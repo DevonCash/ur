@@ -40,6 +40,26 @@ export function stepCost(s: GameState, a: number, b: number, d: number): number 
   return base + crossing;
 }
 
+/** A step a→b (direction d) that follows a river without crossing it: a river edge meets one of the two corners a and b share. */
+export function alongRiver(s: GameState, a: number, b: number, d: number): boolean {
+  const ta = s.tiles[a];
+  const tb = s.tiles[b];
+  if ((ta.river >> d) & 1) return false;
+  const o = (d + 3) % 6;
+  const bit = (r: number, e: number) => (r >> ((e + 6) % 6)) & 1;
+  return !!(bit(ta.river, d - 1) || bit(ta.river, d + 1) || bit(tb.river, o - 1) || bit(tb.river, o + 1));
+}
+
+/**
+ * Travel cost for the economy (reach, hinterland, road routing): like stepCost, but with Reed Boats
+ * a step along a river costs the road rate. Units do not use this.
+ */
+export function economicStepCost(s: GameState, civId: number, a: number, b: number, d: number): number {
+  const c = stepCost(s, a, b, d);
+  if (c === Infinity || c <= ROAD_COST) return c;
+  return hasTech(s.civs[civId], 'reedboats') && alongRiver(s, a, b, d) ? ROAD_COST : c;
+}
+
 export function tileDefence(t: Tile): number {
   return t.feature ? FEATURE[t.feature].defence : TERRAIN[t.terrain].defence;
 }
@@ -191,6 +211,8 @@ export interface DijkstraOpts {
   maxCost: number;
   /** extra rule for whether a tile may be entered (beyond passability) */
   canEnter?: (tile: number) => boolean;
+  /** step cost; defaults to stepCost */
+  cost?: (a: number, b: number, d: number) => number;
 }
 
 /** Cheapest travel cost from sources to every tile within maxCost. */
@@ -209,7 +231,7 @@ export function dijkstra(s: GameState, sources: number[], opts: DijkstraOpts): M
     for (let d = 0; d < 6; d++) {
       const n = neighbour(g, i, d);
       if (n < 0) continue;
-      const c = stepCost(s, i, n, d);
+      const c = opts.cost ? opts.cost(i, n, d) : stepCost(s, i, n, d);
       if (c === Infinity) continue;
       const nc = cost + c;
       if (nc > opts.maxCost) continue;

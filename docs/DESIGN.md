@@ -84,6 +84,10 @@ yields, travel cost and defence.
   road (roads bridge rivers). Map generation marks about one river edge in eight as a ford.
 - A melee attack across a river edge (ford or not) suffers −20% strength.
 - A tile touching a river edge or adjacent to a lake has **fresh water** (used by farms, §8.1).
+- **Rivers as transport** (after Reed Boats, §13): a step between neighbouring tiles that follows a
+  river without crossing it (a river edge meets a corner the two tiles share) costs 0.5, the road
+  rate, for the economy: settlement reach (§7.5), hinterland deliveries (§7.11) and road routing
+  (§8.4). Unit movement is unaffected.
 
 ### 5.4 Resources
 
@@ -195,6 +199,7 @@ wide across plains, short into hills and marsh, stretched along roads, stopped b
 - Where two settlements of the same civilization reach a tile, it belongs to the one that reaches
   it more cheaply. Between civilizations, the existing owner keeps it; unowned contested tiles go
   to the cheaper reach, ties to the older settlement.
+- With Reed Boats, reach follows rivers at the road rate (§5.3).
 - Reach is recomputed only when roads, footprint or tier change.
 
 ### 7.6 Working tiles
@@ -543,6 +548,7 @@ knowing Foraging.
 | Tech         | Cost | Requires              | Unlocks                                         |
 |--------------|------|-----------------------|-------------------------------------------------|
 | Foraging     | –    | –                     | Start                                           |
+| Reed Boats   | 20   | Foraging              | River travel at road rate for the economy (§5.3) |
 | Hunting      | 20   | Foraging              | Slinger                                         |
 | Herding      | 20   | Foraging              | Pasture                                         |
 | Tilling      | 20   | Foraging              | Farm                                            |
@@ -773,9 +779,9 @@ it takes in changed form, and what it leaves out.
 | One citizen works one tile          | One person works two tiles at finer scale                                 |
 | Happiness                           | Stability, which also drives migration and stalls tier upgrades           |
 | Open borders allow unit passage     | Border policy controls migration; unit passage follows war/peace          |
-| River crossing ends movement        | River crossing costs +1 travel; fords and roads cross freely              |
+| River crossing ends movement        | River crossing costs +1 travel; fords and roads cross freely; with Reed Boats rivers carry the economy at road rate |
 | Tiles at continental scale          | ~1.5 km tiles; units are companies; regional maps                         |
-| Tech tree across all eras           | 14 techs, Bronze to Iron Age, original names                              |
+| Tech tree across all eras           | 15 techs, Bronze to Iron Age, original names                              |
 | Experience, chosen promotions, upgrades for gold | Fixed rank bonuses; upgrades for gold; advanced units exist only by upgrade |
 
 #### Left out

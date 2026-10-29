@@ -18,7 +18,7 @@ import {
 } from '../core/world';
 
 const RESEARCH_ORDER: TechId[] = [
-  'tilling', 'stoneworking', 'herding', 'hunting', 'pottery', 'masonry', 'irrigation', 'bronze', 'wheel',
+  'tilling', 'reedboats', 'stoneworking', 'herding', 'hunting', 'pottery', 'masonry', 'irrigation', 'bronze', 'wheel',
   'writing', 'archery', 'mathematics', 'ironworking',
 ];
 const BUILD_ORDER: BuildingId[] = ['granary', 'shrine', 'workshop', 'library', 'walls', 'market', 'barracks', 'ziggurat'];

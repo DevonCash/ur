@@ -18,7 +18,7 @@ import {
 import type { Civ, GameState, Emigration, ProductionItem, Settlement, Unit } from './types';
 import { canOccupy, createUnit, enemyInView, exploreTarget, inEnemyZoc, moveUnit, pathFor, updateVision } from './units';
 import {
-  atWar, civSettlements, civUnits, civilianAt, dijkstra, findPath, grid, hasResource, hasTech, isFlat,
+  atWar, civSettlements, civUnits, civilianAt, dijkstra, economicStepCost, findPath, grid, hasResource, hasTech, isFlat,
   isLand, isMilitary, isPassable, log, militaryAt, newId, ownerCiv, relKey, relation, settlementAtTile,
   settlementById, tileYields, unitById,
 } from './world';
@@ -416,7 +416,11 @@ function besiegerOf(s: GameState, st: Settlement): { civ: number; unit: Unit } |
 function hubFor(s: GameState, st: Settlement): Settlement | null {
   if (st.tier >= 2) return null;
   const enemyTiles = new Set(s.units.filter((u) => isMilitary(u) && atWar(s, u.civId, st.civId)).map((u) => u.tile));
-  const reach = dijkstra(s, [st.center], { maxCost: HINTERLAND_RANGE, canEnter: (t) => !enemyTiles.has(t) });
+  const reach = dijkstra(s, [st.center], {
+    maxCost: HINTERLAND_RANGE,
+    canEnter: (t) => !enemyTiles.has(t),
+    cost: (a, b, d) => economicStepCost(s, st.civId, a, b, d),
+  });
   let best: Settlement | null = null;
   let bc = Infinity;
   for (const o of civSettlements(s, st.civId)) {
@@ -682,10 +686,15 @@ function autoRoads(s: GameState, civId: number) {
     let best: { path: number[]; cost: number } | null = null;
     for (const o of sts) {
       if (o.id === st.id) continue;
-      const p = findPath(s, st.center, o.center, (t) => {
-        const oc = ownerCiv(s, t);
-        return oc === -1 || oc === civId;
-      }, 15);
+      const p = findPath(
+        s, st.center, o.center,
+        (t) => {
+          const oc = ownerCiv(s, t);
+          return oc === -1 || oc === civId;
+        },
+        15,
+        (a, b, d) => economicStepCost(s, civId, a, b, d),
+      );
       if (p && (!best || p.cost < best.cost)) best = p;
     }
     if (!best) continue;
