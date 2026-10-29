@@ -21,12 +21,8 @@ whichever places offer the better life. A settlement's size and status depend on
 
 1. **Every turn has a meaningful decision, and the turn is short.** No busywork; automate what
    isn't a choice.
-2. **The map is the story.** Rivers and terrain decide where settlements go, how far they reach,
-   and where wars are fought.
-3. **People are the scarce resource.** Growing a settlement, expanding to new land, and improving
+2. **People are the scarce resource.** Growing a settlement, expanding to new land, and improving
    that land all draw on the same population.
-4. **Readable systems.** Every number on screen can be explained by a tooltip. No hidden modifiers.
-5. **Original content.** Civilizations, leaders, technology names, art and rules text are Ur's own.
 
 ## 3. Scale
 
