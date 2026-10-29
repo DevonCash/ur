@@ -1,6 +1,6 @@
 # Ur — Design Document
 
-Status: draft v0.2 · 2026-10-29
+Status: draft v0.3 · 2026-10-29 · prototype built (see README)
 
 All numbers in this document are first-pass values, set to be tuned in playtesting (milestone 9).
 The rules they belong to are the design; the numbers are not.
@@ -143,12 +143,13 @@ centre, and not inside another civilization's territory. A civilization's first 
 
 ### 7.2 Population and food
 
-- Each person **eats 4 food** per turn and **works 2 tiles**.
+- Each person **eats 3 food** per turn and **works 2 tiles**.
 - Surplus food fills the food store. When the store reaches the growth threshold, population
   grows by 1 and the store empties (Granary keeps 25%).
   Growth threshold: `15 + 6·(pop − 1) + (pop − 1)^1.6`, rounded down.
+- A new settlement starts with 10 food in store.
 - A food deficit drains the store. If the store is empty and the deficit continues, the settlement
-  loses 1 person. A settlement that reaches 0 people is abandoned and leaves ruins.
+  loses 1 person every 2 turns (every turn under siege). A settlement that reaches 0 people is abandoned and leaves ruins.
 
 ### 7.3 Tiers
 
@@ -174,7 +175,7 @@ Settlements climb a ladder of four tiers by **sustaining** population.
 
 The footprint is the settlement's built-up area. Footprint tiles are **urban**:
 
-- The **centre tile** yields 2 food, 1 production, 1 gold, plus any resource on it.
+- The **centre tile** yields 3 food, 1 production, 1 gold, plus any resource on it.
 - Other urban tiles yield 0 food, 2 production, 1 gold, and lose any improvement.
 - Footprint tiles are always worked and do not use people.
 
@@ -367,7 +368,7 @@ Every unit is made of people.
   | City    | 4        | 4 turns         |
 
   Pools start full. A Barracks refills 2 turns faster. Migrants do not use the pool.
-- The settlement becomes the unit's **home**. Each unit costs its home **2 food per turn**
+- The settlement becomes the unit's **home**. Each unit costs its home **1 food per turn**
   (soldiers partly forage). If the home's food store is empty and it cannot pay, the unit loses
   10 HP per turn.
 - A unit that dies loses its person. A unit destroyed by melee becomes a prisoner instead (§9.8).
@@ -503,11 +504,11 @@ recovers.
 One civilization-wide number:
 
 ```
-stability = 4
+stability = 5
           + 3 per distinct luxury
           + buildings (Shrine +2, Ziggurat +3)
-          − 1 per settlement
-          − 1 per 3 people across the civilization, soldiers included (rounded down)
+          − 1 per settlement beyond the first
+          − 1 per 4 people across the civilization, soldiers included (rounded down)
           − 2 per closed border
 ```
 
@@ -623,9 +624,10 @@ src/
 
 Principles:
 
-- **Simulation is a pure library.** `applyAction(state, action) → state`. Every player action
-  (human or AI) goes through it. This makes save/load, replays, undo, testing, and later
-  multiplayer straightforward.
+- **Simulation is a pure library.** `applyAction(state, action)` validates and applies every
+  player action (human or AI), mutating the state in place for speed. With the seeded RNG in
+  state, a seed plus the action log reproduces a game, which keeps save/load, replays, testing and
+  later multiplayer straightforward.
 - **Determinism.** Seeded RNG stored in game state; no `Math.random()` in `core/`.
 - **Serializable state.** Plain JSON objects; save = `JSON.stringify(state)` into IndexedDB.
 - **Headless tests.** Simulation tested with Vitest, including full AI-vs-AI games as smoke tests.
@@ -638,11 +640,12 @@ Proposed stack (prefer existing libraries):
 |----------------|------------------------------------------|
 | Language/build | TypeScript, Vite                         |
 | Map rendering  | PixiJS (WebGL, sprite batching, culling) |
-| Hex math       | honeycomb-grid                           |
+| Hex math       | Own ~150-line module (axial + odd-r; neighbour table) |
 | Noise          | simplex-noise                            |
-| Seeded RNG     | pure-rand                                |
+| Seeded RNG     | Own mulberry32 (state is one number in game state) |
 | UI panels      | Svelte 5 over the canvas                 |
-| Pathfinding    | A*/Dijkstra over hex graph (own code or `ngraph.path`) |
+| Pathfinding    | A*/Dijkstra, own code over `flatqueue`   |
+| Pan/zoom       | pixi-viewport                            |
 | Storage        | idb-keyval (IndexedDB)                   |
 | Tests          | Vitest                                   |
 
@@ -694,7 +697,9 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 
 ## 20. Open questions
 
-1. UI framework: Svelte 5 vs. plain DOM vs. React? (Proposed: Svelte.)
+These are answered by playtesting the prototype (milestone 9), except where noted.
+
+1. ~~UI framework~~ — decided: Svelte 5 (prototype built with it).
 2. Art direction: flat vector placeholders now; eventual style (flat illustrated, low-poly, pixel)?
 3. Theme: Bronze Age Mesopotamia-flavoured setting, or invented civilizations?
 4. Tile grain: is ~1.5 km per tile right, given the cost in tiles, AI time and screen density?
