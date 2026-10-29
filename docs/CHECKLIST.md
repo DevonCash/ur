@@ -25,13 +25,14 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Fog of war (unexplored / explored / visible)
 - [ ] Turn loop + End Turn
 
-## M3 Cities
-- [ ] Found city (settler), min-distance rule
+## M3 Settlements
+- [ ] Found camp (migrants), min-distance rule
+- [ ] Tier ladder: sustained-population upgrade/downgrade with progress bar
 - [ ] Tile yields, worked-tile auto-assignment + manual override
 - [ ] Food storage and growth
 - [ ] Production queue (single item), units + buildings
 - [ ] Culture-driven border growth
-- [ ] City screen
+- [ ] Settlement screen
 
 ## M4 Tech & improvements
 - [ ] Tech DAG data + research
@@ -46,7 +47,7 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Melee and ranged attacks
 - [ ] Combat preview tooltip
 - [ ] Healing
-- [ ] City HP, walls, city ranged attack, capture
+- [ ] Settlement HP, walls, ranged attack, capture
 
 ## M6 AI
 - [ ] Settle-site scoring + expansion
@@ -55,11 +56,14 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] War/peace decisions
 - [ ] Headless AI-vs-AI full game test
 
-## M7 Water
+## M7 Migration
 - [ ] Fresh-water adjacency + farm bonus
-- [ ] Floods (telegraphed), pillage, levees
-- [ ] Canals extend fresh water
-- [ ] Toggle for playtesting with/without floods
+- [ ] Migrants unit: leave, found camp, join settlement
+- [ ] Attractiveness score + drift with dampers (distance, cap, crowding, attachment)
+- [ ] Cross-civ drift + open/closed borders
+- [ ] Encourage/restrict emigration levers
+- [ ] Refugees from sieges/capture
+- [ ] Migration log + flow overlay
 
 ## M8 Victory & save
 - [ ] Conquest + score victory, end screen

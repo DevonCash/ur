@@ -9,17 +9,21 @@ grow them into an empire, and outlast rivals through expansion, production and w
 the 4X ("explore, expand, exploit, exterminate") strategy game, with Civ 5's one-unit-per-tile hex
 combat as the main touchstone for feel.
 
-Ur's own identity: **water is the central resource.** Civilization begins on rivers. Floods feed
-cities and wreck what isn't protected; canals carry fresh water inland and turn dry land fertile.
-Where you settle and how you move water shapes your whole empire.
+Ur's first point of difference: **people are the resource.** There are no settler units and no
+fixed cities. Settlements grow from camps into cities by sustaining population over time, and people
+move — sent out as migrants, or drifting on their own toward better-run places, including across
+civilization borders. Further differences from Civ are expected to accumulate as the design
+develops; none of them is load-bearing alone.
 
 ## 2. Pillars
 
 1. **Every turn has a meaningful decision, and the turn is short.** No busywork; automate what
    isn't a choice.
-2. **The map is the story.** Rivers, floods and terrain drive where cities go and where wars happen.
-3. **Readable systems.** Every number on screen can be explained by a tooltip. No hidden modifiers.
-4. **Original content.** Ur shares a genre, not content: its civilizations, leaders, tech names,
+2. **The map is the story.** Rivers and terrain drive where settlements go and where wars happen.
+3. **People over production.** Population is the scarce resource; growing tall and expanding wide
+   draw from the same pool.
+4. **Readable systems.** Every number on screen can be explained by a tooltip. No hidden modifiers.
+5. **Original content.** Ur shares a genre, not content: its civilizations, leaders, tech names,
    art and rules text are its own.
 
 ## 3. Core loop
@@ -58,28 +62,59 @@ Each tile has a base yield from terrain + feature + improvement + resource. A ci
 tile plus one tile per population point; tile assignment is automatic by default with manual
 override.
 
-### 4.3 Water (signature mechanic)
+### 4.3 Fresh water
 
-- **Fresh water**: tiles adjacent to a river, lake or canal. Farms need fresh water for their full
-  bonus; cities on fresh water grow faster.
-- **Floods**: every N turns (seeded, telegraphed 3 turns ahead), river tiles flood. Flooded tiles
-  get +1 food until the next flood but unprotected improvements on them are pillaged.
-  A **levee** improvement protects a tile.
-- **Canals**: a worker-built improvement that extends fresh water one tile from an existing water
-  source; chains of canals reach inland. Canals cost gold upkeep.
+Tiles adjacent to a river or lake have fresh water. Farms need it for their full bonus. (Floods and
+canals are parked in §10.)
 
-Open question: is flooding fun or just a tax? Prototype it behind a toggle and playtest.
+### 4.4 Settlements
 
-### 4.4 Cities
+Settlements replace fixed cities. They climb a tier ladder by **sustaining** population.
 
-- Founded by Settlers. Minimum 3 tiles between cities.
-- Population grows when stored food reaches a threshold (`15 + 6·(pop-1) + (pop-1)^1.6`, tuned later).
-- Each citizen eats 2 food.
-- Borders start at radius 1; culture buys new tiles one at a time, preferring high-yield ones.
-- One production queue item at a time (queue UI in a later phase).
-- City has HP and a ranged attack once it has walls; captured at 0 HP by a melee unit.
+| Tier    | Pop to reach | Work radius | Building slots | Unlocks                          |
+|---------|--------------|-------------|----------------|----------------------------------|
+| Camp    | 1            | 1           | 0              | Migrants, Worker, Scout          |
+| Village | 3            | 1           | 2              | Military units, borders grow     |
+| Town    | 6            | 2           | 4              | Walls, ranged city attack        |
+| City    | 10           | 3           | 6              | Wonders, advanced units          |
 
-### 4.5 Units
+Numbers are first guesses for tuning.
+
+- **Upgrade**: hold population ≥ the next tier's threshold for **N turns** (proposed 8). A progress
+  bar shows the count.
+- **Downgrade**: below the current tier's threshold for N turns, the settlement drops a tier.
+  The gap between rules prevents flicker.
+- Population grows when stored food reaches a threshold (`15 + 6·(pop-1) + (pop-1)^1.6`, tuned
+  later). Each person eats 2 food.
+- Minimum 3 tiles between settlements.
+- Borders start at radius 1 (Village+); culture buys new tiles one at a time, preferring high-yield
+  ones.
+- One production item at a time.
+- Settlements have HP; Town+ with walls has a ranged attack. Captured at 0 HP by a melee unit.
+
+### 4.5 Migration
+
+Population moves. Two channels:
+
+1. **Migrants (directed).** A unit built by removing 1–2 population from a settlement. Founds a
+   Camp on an empty site or joins an existing settlement of its civilization. Replaces the
+   classic settler. Every migrant sent delays the home settlement's next tier: wide vs tall is one
+   decision.
+2. **Drift (automatic).** Each turn people may move from a settlement to a more **attractive** one
+   nearby, **regardless of owner**.
+   - Attractiveness = f(food surplus, stability, safety, crowding, amenities).
+   - Dampers: pull decays with distance; capped flow per settlement per turn; crowding lowers
+     attractiveness; a home-attachment bias resists leaving.
+   - Player levers, not micromanagement: per-settlement *encourage / restrict* emigration, and
+     per-neighbour *open / closed* borders (closing costs stability).
+   - War displaces people: settlements under siege or recently captured shed refugees.
+   - Every movement is logged with a reason ("2 people left Eridu for Kish: famine").
+
+Cross-civilization drift is soft power: a well-run empire grows by absorbing its rivals' people;
+a badly-run one bleeds them. Later layer (not prototype): migrants keep an origin identity until
+integrated; a majority-foreign settlement can defect.
+
+### 4.6 Units
 
 One military unit and one civilian unit per tile. Movement points; terrain costs (hills/forest/marsh
 = 2, river crossing ends movement). Zone of control: entering a tile adjacent to an enemy costs all
@@ -89,7 +124,7 @@ Prototype roster:
 
 | Unit      | Role     | Str | Ranged | Moves | Unlock      |
 |-----------|----------|-----|--------|-------|-------------|
-| Settler   | Civilian | –   | –      | 2     | start       |
+| Migrants  | Civilian | –   | –      | 2     | start       |
 | Worker    | Civilian | –   | –      | 2     | start       |
 | Scout     | Recon    | 4   | –      | 3     | start       |
 | Warrior   | Melee    | 8   | –      | 2     | start       |
@@ -98,7 +133,7 @@ Prototype roster:
 | Chariot   | Mounted  | 12  | –      | 4     | Wheel       |
 | Bowman    | Ranged   | 7   | 10 (r2)| 2     | Archery     |
 
-### 4.6 Combat
+### 4.7 Combat
 
 - Units have 100 HP. Damage dealt scales with the strength ratio:
   `damage = 30 · exp(0.04 · (attackerStr − defenderStr)) · rand(0.8, 1.2)`, clamped to [1, 100].
@@ -108,61 +143,67 @@ Prototype roster:
 - Healing: +10 HP/turn in field, +20 in friendly territory, +25 in a city, only if unit didn't act.
 - Combat preview tooltip shows expected damage both ways before committing.
 
-### 4.7 Technology
+### 4.8 Technology
 
-A small DAG (~14 techs) for the prototype. Names are Ur's own:
+A small DAG (~13 techs) for the prototype. Names are Ur's own:
 
 ```
 Foraging ─┬─ Hunting ── Archery
           ├─ Herding ── Wheel
-          └─ Tilling ─┬─ Irrigation ── Canals
+          └─ Tilling ─┬─ Irrigation
                       └─ Pottery ── Writing ── Mathematics
 Stoneworking ── Masonry ── Bronze ── Ironworking
 ```
 
 Each tech unlocks units, buildings or improvements. Cost grows with tech count.
 
-### 4.8 Buildings & improvements
+### 4.9 Buildings & improvements
 
 Buildings (prototype): Granary, Shrine, Barracks, Walls, Workshop, Library, Market, Ziggurat
-(national wonder, capital only).
+(national wonder, capital only). Each takes a building slot (§4.4).
 
-Improvements: Farm, Mine, Pasture, Lumber Camp, Road, Levee, Canal.
+Improvements: Farm, Mine, Pasture, Lumber Camp, Road.
 
 Resources (prototype): Wheat, Cattle, Stone, Copper, Horses. Copper and Horses gate Spearman and
 Chariot respectively (strategic resources, simple yes/no gating in prototype).
 
-### 4.9 Economy & stability
+### 4.10 Economy & stability
 
-- Gold: from tiles, markets, and a flat per-city amount. Spent on unit/building upkeep and
+- Gold: from tiles, markets, and a flat per-settlement amount. Spent on unit/building upkeep and
   rush-buying.
-- **Stability** (simplified happiness): empire-wide number. Each city and each population point
-  costs stability; luxury resources and shrines add it. Negative stability slows growth and
-  production. One number, one tooltip.
+- **Stability** (simplified happiness): empire-wide number. Each settlement and each population
+  point costs stability; luxury resources and shrines add it. Negative stability slows growth and
+  production and lowers attractiveness, so people emigrate. One number, one tooltip.
 
-### 4.10 AI
+### 4.11 AI
 
 - Prototype: 2–3 rule-based opponents.
-- Priorities by weighted scoring: expand (settle best scored site), defend (garrison threatened
-  cities), attack (target weakest adjacent rival when military ratio > 1.5).
+- Priorities by weighted scoring: expand (send migrants to best scored site), defend (garrison
+  threatened settlements), attack (target weakest adjacent rival when military ratio > 1.5),
+  tier up (hold population when a settlement is close to its next tier).
+- Migration levers and border policy set from simple rules (close borders when net outflow to a
+  neighbour exceeds a threshold).
 - Same rules and information as the player (respects fog of war). No cheating bonuses except an
   optional difficulty yield multiplier.
 
-### 4.11 Victory
+### 4.12 Victory
 
 - **Conquest**: control every original capital.
 - **Score**: highest score at turn 150 (population, techs, territory, wonders).
 
-### 4.12 Diplomacy
+### 4.13 Diplomacy
 
-Prototype: war/peace state only. Declare war, propose peace (AI accepts based on war score).
+Prototype: war/peace state and open/closed borders per neighbour. Declare war, propose peace
+(AI accepts based on war score).
 
 ## 5. Interface
 
 - Full-window map canvas with pan (drag), zoom (wheel/pinch), and keyboard shortcuts.
 - Top bar: yields per turn, stability, current research, turn number, End Turn button.
 - Right panel: selected unit or city detail.
-- City screen: tile yield overlay, worked tiles, production picker, building list.
+- Settlement screen: tier progress, tile yield overlay, worked tiles, production picker,
+  building slots, migration levers.
+- Migration log and a map overlay showing net flows between settlements.
 - Tech tree screen.
 - Hover tooltips on everything that has a number.
 - Unit action bar: move, attack, fortify, sleep, skip, build improvement, found city.
@@ -206,7 +247,8 @@ Deploy target: static site (e.g. Cloudflare Pages/Workers static assets). No ser
 
 ## 7. Prototype scope
 
-Goal: **prove the core loop is fun** on one small map against AI, with the water mechanic in play.
+Goal: **prove the core loop is fun** on one small map against AI, with settlement tiers and
+migration in play.
 
 ### In scope
 
@@ -225,13 +267,18 @@ Goal: **prove the core loop is fun** on one small map against AI, with the water
 - Detailed diplomacy (deals, alliances, trading)
 - Sound, music, animation polish
 - Map wrap, multiple map sizes/types
+- Migrant identity and integration, settlement defection
+- Everything in §10
 
 ### Success criteria
 
 1. A full game plays to a victory without crashes or soft-locks.
 2. Average turn (player + AI) resolves in under 1 s on a mid-range laptop at turn 150.
 3. Playtesters make a settle/production/war decision they can explain on most turns.
-4. Floods/canals change at least one settling decision per game (or the mechanic is cut/reworked).
+4. Players can name a turn where they chose between sending migrants and holding population for
+   a tier-up.
+5. Cross-civilization drift changes population noticeably in at least some games without one civ
+   draining all others (or dampers are retuned).
 
 ## 8. Milestones
 
@@ -242,11 +289,11 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 | 0 | Skeleton               | Vite + TS + Pixi + Svelte app, Vitest, CI-free local scripts   |
 | 1 | Map                    | Seeded map gen, render, pan/zoom, hover tile info              |
 | 2 | Units & movement       | Select, pathfind, move, fog of war, end turn                   |
-| 3 | Cities                 | Found city, yields, growth, production, borders                |
+| 3 | Settlements            | Found camp, yields, growth, tiers, production, borders         |
 | 4 | Tech & improvements    | Research, workers, improvements, resources                     |
 | 5 | Combat                 | Melee/ranged, preview, healing, city capture                   |
 | 6 | AI                     | Rule-based AI that expands and fights                          |
-| 7 | Water                  | Fresh water, floods, levees, canals                            |
+| 7 | Migration              | Migrants, drift, cross-civ flows, border policy, log           |
 | 8 | Victory & save         | Conquest/score victory, save/load, end screen                  |
 | 9 | Playtest & tune        | Balance pass against success criteria                          |
 
@@ -255,5 +302,18 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 1. UI framework: Svelte 5 vs. plain DOM vs. React? (Proposed: Svelte.)
 2. Art direction: flat vector placeholders now — eventual style (flat illustrated, low-poly, pixel)?
 3. Theme: Bronze Age Mesopotamia-flavoured setting, or ahistorical/fantasy civilizations?
-4. Should flooding ship in milestone 3 (part of the core) or stay at milestone 7 as an experiment?
+4. **Scale** — how Ur differs from Civ in scale: many small settlements, larger time/space,
+   smaller and more granular, or real population counts? Affects tier thresholds, map size and
+   whether population is abstract points or headcount.
 5. Turn limit and map size — is 150 turns on 40×26 the right length for 60–90 minutes?
+6. Should migration (M7) move earlier, since tiers depend on population pressure?
+
+## 10. Idea backlog
+
+Candidate differentiators, not committed:
+
+- **Floods**: river tiles flood on a telegraphed schedule (+food, pillage unprotected
+  improvements, levees protect). Would push people out and threaten tiers.
+- **Canals**: extend fresh water inland; make new land attractive to migrants.
+- **Migrant identity**: origin identity, integration over time, defection of majority-foreign
+  settlements.
