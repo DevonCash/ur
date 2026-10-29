@@ -16,6 +16,7 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Rivers on hex edges, traced downhill
 - [ ] Render terrain, features, rivers
 - [ ] Pan, zoom, hover tooltip with tile yields
+- [ ] Chunked/culled rendering: 80×52 map at 60 fps
 - [ ] Same seed → same map (test)
 
 ## M2 Units & movement
@@ -28,6 +29,7 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 ## M3 Settlements
 - [ ] Migrants unit: leave (costs pop), found camp, join settlement; min-distance rule
 - [ ] Tier ladder: sustained-population upgrade/downgrade with progress bar
+- [ ] Multi-tile footprint: urban tiles expand on tier-up
 - [ ] Tile yields, worked-tile auto-assignment + manual override
 - [ ] Food storage and growth
 - [ ] Production queue (single item), units + buildings
@@ -37,7 +39,8 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 ## M4 Tech & improvements
 - [ ] Tech DAG data + research
 - [ ] Tech tree screen
-- [ ] Worker build actions: farm, mine, pasture, lumber camp, road
+- [ ] Auto-development of worked tiles (farm, pasture)
+- [ ] Worker build actions: mine, lumber camp, road, rush auto-development
 - [ ] Resources + strategic gating (copper, horses)
 - [ ] Gold, upkeep, rush-buy
 - [ ] Stability
