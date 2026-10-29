@@ -276,26 +276,8 @@ function actMigrants(s: GameState, u: Unit) {
 }
 
 function actScout(s: GameState, u: Unit) {
-  const vis = s.civs[u.civId].vis;
-  const g = grid(s);
-  let best = -1;
-  let bd = Infinity;
-  for (const i of tilesInRadius(g, u.tile, 16)) {
-    if (vis[i] === 0 || !isPassable(s.tiles[i])) continue;
-    let frontier = false;
-    for (let d = 0; d < 6; d++) {
-      const n = neighbour(g, i, d);
-      if (n >= 0 && vis[n] === 0) frontier = true;
-    }
-    if (!frontier) continue;
-    const dd = distance(s.w, u.tile, i) + nextFloat(s.rng) * 3;
-    if (dd < bd && canOccupy(s, u, i)) {
-      bd = dd;
-      best = i;
-    }
-  }
-  if (best >= 0 && pathFor(s, u, best)) act(s, u.civId, { type: 'move', unit: u.id, to: best });
-  else act(s, u.civId, { type: 'fortify', unit: u.id });
+  if (u.explore) return;
+  if (!act(s, u.civId, { type: 'explore', unit: u.id }).ok) act(s, u.civId, { type: 'fortify', unit: u.id });
 }
 
 function actMilitary(s: GameState, u: Unit) {

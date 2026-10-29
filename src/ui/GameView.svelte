@@ -191,6 +191,7 @@
       selectNextUnit();
     } else if (su && su.civId === 0) {
       if (k === 'f') act({ type: 'fortify', unit: su.id });
+      else if (k === 'x') act({ type: 'explore', unit: su.id });
       else if (k === 's') act({ type: 'sleep', unit: su.id });
       else if (k === ' ') {
         e.preventDefault();

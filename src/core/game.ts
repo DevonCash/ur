@@ -16,7 +16,7 @@ import {
   settlementYields, tierPopulation, unitsHomed,
 } from './settlement';
 import type { Civ, GameState, Emigration, ProductionItem, Settlement, Unit } from './types';
-import { canOccupy, createUnit, inEnemyZoc, meet, moveUnit, updateVision } from './units';
+import { canOccupy, createUnit, enemyInView, exploreTarget, inEnemyZoc, moveUnit, pathFor, updateVision } from './units';
 import {
   atWar, civSettlements, civUnits, civilianAt, dijkstra, findPath, grid, hasResource, hasTech, isFlat,
   isLand, isMilitary, isPassable, log, militaryAt, newId, ownerCiv, relKey, relation, settlementAtTile,
@@ -556,7 +556,10 @@ export function startTurn(s: GameState, civId: number): void {
   // 7. units, pools, development, roads, prisoners, settlement healing
   for (const u of civUnits(s, civId)) {
     const homeSt = u.home !== null ? settlementById(s, u.home) : undefined;
-    if (homeSt && homeSt.besieged && !homeSt.footprint.includes(u.tile) && isMilitary(u)) u.hp -= 10;
+    if (homeSt && homeSt.besieged && !homeSt.footprint.includes(u.tile) && isMilitary(u)) {
+      u.hp -= 10;
+      u.explore = false;
+    }
     if (!u.acted) {
       const own = ownerCiv(s, u.tile) === civId;
       const inSt = s.tiles[u.tile].urban >= 0 && settlementAtTile(s, u.tile)?.civId === civId;
@@ -614,6 +617,7 @@ export function startTurn(s: GameState, civId: number): void {
   recomputeTerritory(s);
   for (const st of civSettlements(s, civId)) assignWorked(s, st);
   updateVision(s, civId);
+  runStandingOrders(s, civId);
 }
 
 function pickClaim(s: GameState, st: Settlement): number {
@@ -709,7 +713,49 @@ export type TurnBlocker = { kind: 'unit'; id: number } | { kind: 'research' } | 
 
 /** A unit needs orders while it has moves left and no standing order (sleep, fortify). */
 export function needsOrders(u: Unit): boolean {
-  return u.moves > 0 && !u.sleeping && u.fortify === 0;
+  return u.moves > 0 && !u.sleeping && u.fortify === 0 && u.destination == null && !u.explore;
+}
+
+function clearOrders(u: Unit) {
+  u.destination = null;
+  u.explore = false;
+}
+
+/** Continue multi-turn moves and auto-explore at the start of a civ's turn (DESIGN §9.4). */
+function runStandingOrders(s: GameState, civId: number) {
+  for (const u of civUnits(s, civId)) {
+    if (u.destination == null && !u.explore) continue;
+    const name = UNIT[u.type].name;
+    const stop = (why: string) => {
+      clearOrders(u);
+      log(s, civId, 'info', `${name} stopped: ${why}.`);
+    };
+    if (u.explore && u.hp < 50) {
+      stop('wounded');
+      continue;
+    }
+    if (enemyInView(s, u)) {
+      stop('enemy in view');
+      continue;
+    }
+    if (u.destination != null) {
+      if (!pathFor(s, u, u.destination)) {
+        stop('no route to destination');
+        continue;
+      }
+      moveUnit(s, u, u.destination);
+      if (u.tile === u.destination) u.destination = null;
+    } else {
+      const target = exploreTarget(s, u);
+      if (target < 0) {
+        stop('nothing left to explore');
+        continue;
+      }
+      moveUnit(s, u, target);
+    }
+    if (isMilitary(u)) captureCiviliansAt(s, u, u.tile, hooks);
+    if ((u.destination != null || u.explore) && enemyInView(s, u)) stop('enemy in view');
+  }
 }
 
 /** What must be decided before a civ may end its turn: idle units, research, empty production. */
@@ -728,7 +774,7 @@ export function turnBlockers(s: GameState, civId: number): TurnBlocker[] {
 export type Action =
   | { type: 'move'; unit: number; to: number }
   | { type: 'attack'; unit: number; tile: number }
-  | { type: 'fortify' | 'sleep' | 'skip' | 'disband' | 'rehome' | 'upgrade' | 'pillage' | 'found' | 'join'; unit: number }
+  | { type: 'fortify' | 'sleep' | 'skip' | 'disband' | 'rehome' | 'upgrade' | 'pillage' | 'found' | 'join' | 'explore' | 'cancelOrders'; unit: number }
   | { type: 'setProduction'; settlement: number; item: ProductionItem | null }
   | { type: 'rushBuy'; settlement: number }
   | { type: 'lockTile'; settlement: number; tile: number }
@@ -865,16 +911,47 @@ export function applyAction(s: GameState, a: Action, actor = s.current): ActionR
     case 'move': {
       const u = unitOf(a.unit);
       if (!u) return fail('No unit');
-      if (u.moves <= 0) return fail('No moves left');
-      const entered = moveUnit(s, u, a.to);
-      if (!entered.length) return fail('Cannot move there');
+      if (a.to === u.tile) return fail('Already there');
+      if (!pathFor(s, u, a.to)) return fail('Cannot move there');
+      clearOrders(u);
+      u.destination = a.to;
+      u.sleeping = false;
+      u.fortify = 0;
+      if (u.moves > 0) moveUnit(s, u, a.to);
+      if (u.tile === a.to) u.destination = null;
       if (isMilitary(u)) captureCiviliansAt(s, u, u.tile, hooks);
       checkElimination(s);
+      return OK;
+    }
+    case 'explore': {
+      const u = unitOf(a.unit);
+      if (!u || !isMilitary(u)) return fail('Only military units explore');
+      clearOrders(u);
+      u.sleeping = false;
+      u.fortify = 0;
+      u.explore = true;
+      if (u.moves > 0) {
+        const t = exploreTarget(s, u);
+        if (t < 0) {
+          u.explore = false;
+          return fail('Nothing left to explore');
+        }
+        moveUnit(s, u, t);
+      }
+      return OK;
+    }
+    case 'cancelOrders': {
+      const u = unitOf(a.unit);
+      if (!u) return fail('No unit');
+      clearOrders(u);
+      u.sleeping = false;
+      u.fortify = 0;
       return OK;
     }
     case 'attack': {
       const u = unitOf(a.unit);
       if (!u) return fail('No unit');
+      clearOrders(u);
       const r = attack(s, u, a.tile, hooks);
       if (!r) return fail('Cannot attack');
       updateVision(s, actor);
@@ -883,6 +960,7 @@ export function applyAction(s: GameState, a: Action, actor = s.current): ActionR
     }
     case 'fortify': {
       const u = unitOf(a.unit);
+      if (u) clearOrders(u);
       if (!u || !isMilitary(u)) return fail('Cannot fortify');
       u.fortify = Math.max(1, u.fortify);
       u.moves = 0;
@@ -890,12 +968,14 @@ export function applyAction(s: GameState, a: Action, actor = s.current): ActionR
     }
     case 'sleep': {
       const u = unitOf(a.unit);
+      if (u) clearOrders(u);
       if (!u) return fail('No unit');
       u.sleeping = true;
       return OK;
     }
     case 'skip': {
       const u = unitOf(a.unit);
+      if (u) clearOrders(u);
       if (!u) return fail('No unit');
       u.moves = 0;
       return OK;

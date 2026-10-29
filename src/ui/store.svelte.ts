@@ -194,3 +194,6 @@ export function militaryFirst(unitIds: number[]): number[] {
   const g = gs();
   return [...unitIds].sort((a, b) => Number(isMilitary(unitById(g, b)!)) - Number(isMilitary(unitById(g, a)!)));
 }
+
+// Dev-only handle for browser debugging and scripted UI checks.
+if (import.meta.env.DEV) (globalThis as Record<string, unknown>).__ur = { gs: () => game, ui };

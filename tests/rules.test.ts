@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { attack } from '../src/core/combat';
 import { TECH_ORDER, TIER_TURNS } from '../src/core/data';
-import { hooks, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
+import { applyAction, hooks, needsOrders, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
 import { neighbour } from '../src/core/hex';
 import { resolveDrift } from '../src/core/migration';
 import { computeReach } from '../src/core/settlement';
-import { createUnit } from '../src/core/units';
+import { createUnit, pathFor, pathTurns, updateVision } from '../src/core/units';
 import { grid, relation } from '../src/core/world';
-import { cr, flatState, foundAt } from './helpers';
+import { cr, flatState, foundAt, offset } from './helpers';
 
 describe('map generation', () => {
   it('is deterministic per seed', () => {
@@ -201,5 +201,112 @@ describe('turn blockers (#1, #5)', () => {
     const s = flatState();
     s.civs[0].techs = TECH_ORDER.slice();
     expect(turnBlockers(s, 0).some((b) => b.kind === 'research')).toBe(false);
+  });
+});
+
+describe('standing orders (#4, #7)', () => {
+  function setup() {
+    const s = flatState(40, 20);
+    const st = foundAt(s, 0, cr(s, 3, 10), 3);
+    const u = createUnit(s, 0, 'warrior', cr(s, 4, 10), st.id);
+    updateVision(s, 0);
+    return { s, st, u };
+  }
+
+  it('a move beyond range becomes a destination that continues each turn', () => {
+    const { s, u } = setup();
+    const to = cr(s, 16, 10);
+    s.current = 0;
+    expect(applyAction(s, { type: 'move', unit: u.id, to }).ok).toBe(true);
+    expect(u.destination).toBe(to);
+    expect(needsOrders(u)).toBe(false);
+    for (let k = 0; k < 4 && u.tile !== to; k++) startTurn(s, 0);
+    expect(u.tile).toBe(to);
+    expect(u.destination).toBeNull();
+  });
+
+  it('estimates turns using the "any moves left may enter" rule', () => {
+    const { s, u } = setup();
+    const p = pathFor(s, u, cr(s, 16, 10))!;
+    const turns = pathTurns(s, u, p.path);
+    expect(turns[turns.length - 1]).toBe(3); // 12 steps at 4 moves per turn
+    s.tiles[cr(s, 6, 10)].feature = 'hills';
+    u.moves = 1;
+    const t2 = pathTurns(s, u, pathFor(s, u, cr(s, 6, 10))!.path);
+    expect(t2).toEqual([1, 2]); // 1 move left enters the plain, hills next turn
+  });
+
+  it('cancels a destination when an enemy comes into view', () => {
+    const { s, u } = setup();
+    relation(s, 0, 1).state = 'war';
+    s.current = 0;
+    applyAction(s, { type: 'move', unit: u.id, to: cr(s, 16, 10) });
+    createUnit(s, 1, 'warrior', offset(s, u.tile, 2, 0), null);
+    startTurn(s, 0);
+    expect(u.destination).toBeNull();
+    expect(needsOrders(u)).toBe(true);
+  });
+
+  it('cancels a destination that can no longer be reached', () => {
+    const { s, u } = setup();
+    const to = cr(s, 16, 10);
+    s.current = 0;
+    applyAction(s, { type: 'move', unit: u.id, to });
+    s.tiles[to].terrain = 'mountain';
+    s.civs[0].vis[to] = 1; // the civ has now seen that it is a mountain
+    startTurn(s, 0);
+    expect(u.destination).toBeNull();
+  });
+
+  it('auto-explore moves toward unexplored land and stops when wounded or done', () => {
+    const { s, u } = setup();
+    s.current = 0;
+    expect(applyAction(s, { type: 'explore', unit: u.id }).ok).toBe(true);
+    expect(u.explore).toBe(true);
+    expect(needsOrders(u)).toBe(false);
+    const explored = () => s.civs[0].vis.filter((v) => v > 0).length;
+    const before = explored();
+    startTurn(s, 0);
+    expect(explored()).toBeGreaterThan(before);
+    u.hp = 40;
+    startTurn(s, 0);
+    expect(u.explore).toBe(false);
+
+    u.explore = true;
+    u.hp = 100;
+    s.civs[0].vis.fill(1);
+    startTurn(s, 0);
+    expect(u.explore).toBe(false);
+  });
+
+  it('auto-explore stops when the unit takes damage', () => {
+    const { s, u } = setup();
+    relation(s, 0, 1).state = 'war';
+    u.explore = true;
+    const archer = createUnit(s, 1, 'bowman', offset(s, u.tile, 3, 0), null);
+    s.civs[1].vis[u.tile] = 2;
+    attack(s, archer, u.tile, hooks);
+    expect(u.explore).toBe(false);
+  });
+});
+
+describe('pathing through the fog (#4)', () => {
+  it('plans through unexplored tiles as passable and re-plans when the real terrain is found', () => {
+    const s = flatState(40, 20);
+    foundAt(s, 0, cr(s, 1, 1), 1);
+    foundAt(s, 1, cr(s, 38, 1), 1);
+    const u = createUnit(s, 0, 'scout', cr(s, 4, 10), null);
+    s.civs[0].vis.fill(0);
+    updateVision(s, 0);
+    const to = cr(s, 14, 10);
+    // a hidden mountain wall across row 10's path, with a gap
+    for (let row = 6; row <= 14; row++) if (row !== 13) s.tiles[cr(s, 9, row)].terrain = 'mountain';
+    expect(s.civs[0].vis[to]).toBe(0);
+    const planned = pathFor(s, u, to)!;
+    expect(planned.path).toContain(cr(s, 9, 10)); // the hidden mountain looks passable
+    s.current = 0;
+    expect(applyAction(s, { type: 'move', unit: u.id, to }).ok).toBe(true);
+    for (let k = 0; k < 6 && u.tile !== to; k++) startTurn(s, 0);
+    expect(u.tile).toBe(to);
   });
 });

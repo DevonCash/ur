@@ -31,7 +31,10 @@
     const projects = (Object.keys(PROJECT) as ProjectKind[]).map((p) => ({ p, why: projectUnavailable(s, st, p) }));
     const a = attractTerms(s, st);
     return {
-      st, civ, y, prodCost, remaining, tp,
+      // snapshots: game objects are mutated in place, so fresh references make the template update
+      st: { ...st, buildings: [...st.buildings], worked: [...st.worked] },
+      civ: { ...civ },
+      y, prodCost, remaining, tp,
       next: st.tier < 3 ? TIER_POP[st.tier + 1] : null,
       growth: growthThreshold(st.pop),
       units, buildings, projects,

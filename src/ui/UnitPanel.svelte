@@ -1,6 +1,7 @@
 <script lang="ts">
   import { RANKS, UNIT, rankOf, upgradeTarget } from '../core/data';
   import { canFound, canUpgrade } from '../core/game';
+  import { pathFor, pathTurns } from '../core/units';
   import { atWar, isMilitary, ownerCiv, settlementAtTile, settlementById, unitById } from '../core/world';
   import { act, gs, refresh, selectNextUnit, ui } from './store.svelte';
 
@@ -19,7 +20,8 @@
     const next = RANKS[r + 1];
     const up = upgradeTarget(u.type);
     return {
-      u,
+      // snapshot: the unit object is mutated in place, so a fresh reference makes the template update
+      u: { ...u },
       def,
       mine,
       civ: s.civs[u.civId],
@@ -32,6 +34,11 @@
       pillage: isMilitary(u) && !!t.improvement && !t.pillaged && oc >= 0 && atWar(s, u.civId, oc),
       upgrade: up ? { name: UNIT[up].name, gold: UNIT[up].upgradeGold, why: canUpgrade(s, u) } : null,
       rehome: isMilitary(u) && here?.civId === u.civId && here.id !== u.home,
+      route: u.destination != null ? (() => {
+        const p = pathFor(s, u, u.destination!);
+        // turns still needed; a unit that has spent its moves only continues next turn
+        return p ? (pathTurns(s, u, p.path).at(-1) ?? 1) - (u.moves <= 0 ? 1 : 0) : null;
+      })() : null,
     };
   });
 </script>
@@ -54,6 +61,8 @@
       {/if}
       {#if u.fortify >= 2}<dt>Status</dt><dd>Fortified (+25%)</dd>{:else if u.fortify === 1}<dt>Status</dt><dd>Fortifying</dd>{/if}
       {#if u.sleeping}<dt>Status</dt><dd>Sleeping</dd>{/if}
+      {#if u.explore}<dt>Status</dt><dd>Exploring</dd>{/if}
+      {#if u.destination != null}<dt>Status</dt><dd>Moving{view.route ? ` (${view.route} more turn${view.route === 1 ? '' : 's'})` : ''}</dd>{/if}
     </dl>
     {#if view.mine}
       <div class="row">
@@ -63,10 +72,14 @@
         {/if}
         {#if view.mil}
           <button onclick={() => act({ type: 'fortify', unit: u.id })} title="F">Fortify</button>
+          <button onclick={() => act({ type: 'explore', unit: u.id })} title="Explore automatically (X)">Explore</button>
           {#if view.pillage}<button onclick={() => act({ type: 'pillage', unit: u.id })}>Pillage</button>{/if}
           {#if view.rehome}<button onclick={() => act({ type: 'rehome', unit: u.id })}>Make this home</button>{/if}
         {/if}
         <button onclick={() => act({ type: 'sleep', unit: u.id })} title="S">Sleep</button>
+        {#if u.explore || u.destination != null || u.sleeping || u.fortify}
+          <button onclick={() => act({ type: 'cancelOrders', unit: u.id })} title="Cancel standing orders">Cancel orders</button>
+        {/if}
         <button
           onclick={() => {
             act({ type: 'skip', unit: u.id });
@@ -83,7 +96,7 @@
       <div class="row up">
         <button class="danger" onclick={() => act({ type: 'disband', unit: u.id })} title="In own territory the person returns to a nearby settlement">Disband</button>
       </div>
-      <p class="muted small">Left-click a tile to move or attack. Drag to pan.</p>
+      <p class="muted small">Click a tile to move or attack; red paths take more than one turn and continue automatically.</p>
     {/if}
   </section>
 {/if}

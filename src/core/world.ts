@@ -230,6 +230,7 @@ export function findPath(
   to: number,
   canEnter?: (tile: number) => boolean,
   maxCost = 200,
+  cost: (a: number, b: number, d: number) => number = (a, b, d) => stepCost(s, a, b, d),
 ): { path: number[]; cost: number } | null {
   if (from === to) return { path: [from], cost: 0 };
   const g = grid(s);
@@ -242,15 +243,15 @@ export function findPath(
   while (q.length) {
     const i = q.pop()!;
     if (i === to) break;
-    const cost = dist.get(i)!;
+    const sofar = dist.get(i)!;
     for (let d = 0; d < 6; d++) {
       const n = neighbour(g, i, d);
       if (n < 0) continue;
-      const c = stepCost(s, i, n, d);
+      const c = cost(i, n, d);
       if (c === Infinity) continue;
       if (n !== to && canEnter && !canEnter(n)) continue;
       if (n === to && canEnter && !canEnter(n)) continue;
-      const nc = cost + c;
+      const nc = sofar + c;
       if (nc > maxCost) continue;
       if (nc < (dist.get(n) ?? Infinity)) {
         dist.set(n, nc);

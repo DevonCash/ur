@@ -138,6 +138,7 @@ export function attack(s: GameState, u: Unit, tile: number, hooks: CombatHooks):
     v.hp -= dd;
     u.hp -= da;
     v.acted = true;
+    v.explore = false;
     if (v.hp > 0) v.xp += 5;
     if (u.hp > 0) u.xp += 5;
     if (v.hp <= 0) {
@@ -198,6 +199,7 @@ export function settlementShoot(s: GameState, st: Settlement, tile: number, hook
   const d = defenceStrength(s, { kind: 'unit', unit: v }, null);
   const dmg = Math.round(Math.max(1, Math.min(100, 30 * Math.pow(a / d, 1.2) * nextRange(s.rng, 0.8, 1.2))));
   v.hp -= dmg;
+  v.explore = false;
   st.rangedUsed = true;
   if (v.hp <= 0) {
     log(s, -1, 'combat', `${st.name} destroyed ${s.civs[v.civId].name} ${UNIT[v.type].name}.`);

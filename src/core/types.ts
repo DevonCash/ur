@@ -72,6 +72,10 @@ export interface Unit {
   fortify: number;
   acted: boolean;
   sleeping: boolean;
+  /** multi-turn move order (DESIGN §9.4); null when none */
+  destination: number | null;
+  /** auto-explore stance */
+  explore: boolean;
 }
 
 export interface Prisoner {

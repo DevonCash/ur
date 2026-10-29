@@ -5,8 +5,8 @@ import { canAttack } from '../core/combat';
 import { UNIT } from '../core/data';
 import { cornerOffset, neighbour, pixelToTile, tileCenter } from '../core/hex';
 import { computeReach } from '../core/settlement';
-import type { GameState } from '../core/types';
-import { canPass, pathFor } from '../core/units';
+import type { GameState, Unit } from '../core/types';
+import { canPass, pathFor, pathTurns } from '../core/units';
 import { dijkstra, grid, isMilitary, settlementById, unitById } from '../core/world';
 
 export const HEX = 22;
@@ -53,6 +53,7 @@ export class MapRenderer {
   /** above fog: hex grid, then cursor/selection/path markers */
   private grid = new Graphics();
   private cursor = new Graphics();
+  private turnLabel = new Text({ text: '', style: { fontFamily: 'system-ui, sans-serif', fontSize: 12, fill: 0xffffff, fontWeight: '700' } });
   private labels: Text[] = [];
   private unitTexts: Text[] = [];
   private builtFor: string | null = null;
@@ -74,7 +75,7 @@ export class MapRenderer {
     this.viewport.drag({ mouseButtons: 'left' }).pinch().decelerate().clampZoom({ minScale: MIN_ZOOM, maxScale: MAX_ZOOM });
     this.installWheel(host);
     this.app.stage.addChild(this.viewport);
-    for (const layer of [this.terrain, this.rivers, this.land, this.resources, this.borders, this.overlay, this.settlements, this.units, this.fog, this.grid, this.cursor]) {
+    for (const layer of [this.terrain, this.rivers, this.land, this.resources, this.borders, this.overlay, this.settlements, this.units, this.fog, this.grid, this.cursor, this.turnLabel]) {
       this.viewport.addChild(layer);
     }
     window.addEventListener('resize', () => this.viewport.resize(host.clientWidth, host.clientHeight));
@@ -391,7 +392,30 @@ export class MapRenderer {
     }
   }
 
+  /** Path preview: this turn's steps white, later turns red, end-of-turn dots, turn count at the end. */
+  private drawPath(s: GameState, u: Unit, path: number[], alpha: number) {
+    const c = this.cursor;
+    const turns = pathTurns(s, u, path);
+    let prev = tileCenter(s.w, path[0], HEX);
+    for (let k = 1; k < path.length; k++) {
+      const next = tileCenter(s.w, path[k], HEX);
+      const color = turns[k - 1] === 1 ? 0xffffff : 0xd8432e;
+      c.moveTo(prev[0], prev[1]).lineTo(next[0], next[1]).stroke({ width: 3, color, alpha });
+      if (k < path.length - 1 && turns[k] !== turns[k - 1]) c.circle(next[0], next[1], 3.5).fill({ color, alpha });
+      prev = next;
+    }
+    const total = turns[turns.length - 1] ?? 1;
+    c.circle(prev[0], prev[1], 5).fill(total > 1 ? 0xd8432e : 0xffffff);
+    if (total > 1) {
+      this.turnLabel.text = `${total} turns`;
+      this.turnLabel.position.set(prev[0] + 8, prev[1] - 20);
+      c.roundRect(prev[0] + 4, prev[1] - 22, this.turnLabel.width + 8, 18, 3).fill(0xd8432e);
+      this.turnLabel.visible = true;
+    }
+  }
+
   drawOverlay(s: GameState, o: Overlay) {
+    this.turnLabel.visible = false;
     const g = this.overlay;
     g.clear();
     const c = this.cursor;
@@ -420,17 +444,11 @@ export class MapRenderer {
             if (s.civs[0].vis[i] === 2 && canAttack(s, u, i)) g.poly(this.hexPoly(s, i, 2)).stroke({ width: 3, color: 0xd8432e });
           }
         }
-        if (o.hoverTile !== null && o.hoverTile !== u.tile && !o.projectMode) {
-          const p = pathFor(s, u, o.hoverTile);
-          if (p) {
-            let prev = tileCenter(s.w, p.path[0], HEX);
-            for (let k = 1; k < p.path.length; k++) {
-              const next = tileCenter(s.w, p.path[k], HEX);
-              c.moveTo(prev[0], prev[1]).lineTo(next[0], next[1]).stroke({ width: 3, color: 0xffffff, alpha: 0.85 });
-              prev = next;
-            }
-            c.circle(prev[0], prev[1], 5).fill(0xffffff);
-          }
+        const hovering = o.hoverTile !== null && o.hoverTile !== u.tile && !o.projectMode;
+        const target = hovering ? o.hoverTile : u.destination;
+        if (target != null) {
+          const p = pathFor(s, u, target);
+          if (p) this.drawPath(s, u, p.path, hovering ? 0.9 : 0.55);
         }
       }
     }
