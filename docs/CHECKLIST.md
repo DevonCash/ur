@@ -26,7 +26,7 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Turn loop + End Turn
 
 ## M3 Settlements
-- [ ] Found camp (migrants), min-distance rule
+- [ ] Migrants unit: leave (costs pop), found camp, join settlement; min-distance rule
 - [ ] Tier ladder: sustained-population upgrade/downgrade with progress bar
 - [ ] Tile yields, worked-tile auto-assignment + manual override
 - [ ] Food storage and growth
@@ -58,7 +58,6 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 
 ## M7 Migration
 - [ ] Fresh-water adjacency + farm bonus
-- [ ] Migrants unit: leave, found camp, join settlement
 - [ ] Attractiveness score + drift with dampers (distance, cap, crowding, attachment)
 - [ ] Cross-civ drift + open/closed borders
 - [ ] Encourage/restrict emigration levers

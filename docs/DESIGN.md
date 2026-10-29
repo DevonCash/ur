@@ -52,7 +52,7 @@ Session goal for the prototype: a full game on a small map in **60–90 minutes*
 
 | Yield      | Used for                                  |
 |------------|-------------------------------------------|
-| Food       | City growth                               |
+| Food       | Settlement growth                         |
 | Production | Units, buildings, wonders                 |
 | Gold       | Upkeep, buying items, rush-buying         |
 | Science    | Research                                  |
