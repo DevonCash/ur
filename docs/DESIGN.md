@@ -1,274 +1,507 @@
 # Ur — Design Document
 
-Status: draft v0.1 · 2026-10-29
+Status: draft v0.2 · 2026-10-29
 
-## 1. Pitch
+All numbers in this document are first-pass values, set to be tuned in playtesting (milestone 9).
+The rules they belong to are the design; the numbers are not.
 
-Ur is a turn-based, hex-map civilization builder played in the browser. Found cities on river plains,
-grow them into an empire, and outlast rivals through expansion, production and war. Genre lineage:
-the 4X ("explore, expand, exploit, exterminate") strategy game, with Civ 5's one-unit-per-tile hex
-combat as the main touchstone for feel.
+## 1. Overview
 
-Ur's first point of difference: **people are the resource.** There are no settler units and no
-fixed cities. Settlements grow from camps into cities by sustaining population over time, and people
-move — sent out as migrants, or drifting on their own toward better-run places, including across
-civilization borders. Further differences from Civ are expected to accumulate as the design
-develops; none of them is load-bearing alone.
+Ur is a turn-based strategy game about growing a civilization, played in the browser on a hex map.
+Each player starts with a band of people, a warrior and a scout. They found settlements, grow them
+from camps into cities, research technologies, build up the land around them, and compete with
+rival civilizations through expansion, the pull of a well-run society, and war. A game ends when
+one civilization holds every rival capital or when the turn limit is reached.
+
+The central resource is **people**. Population works the land, staffs construction projects,
+founds new settlements, and moves between settlements, including between civilizations, toward
+whichever places offer the better life. A settlement's size and status depend on keeping people.
 
 ## 2. Pillars
 
 1. **Every turn has a meaningful decision, and the turn is short.** No busywork; automate what
    isn't a choice.
-2. **The map is the story.** Rivers and terrain drive where settlements go and where wars happen.
-3. **People over production.** Population is the scarce resource; growing tall and expanding wide
-   draw from the same pool.
+2. **The map is the story.** Rivers and terrain decide where settlements go, how far they reach,
+   and where wars are fought.
+3. **People are the scarce resource.** Growing a settlement, expanding to new land, and improving
+   that land all draw on the same population.
 4. **Readable systems.** Every number on screen can be explained by a tooltip. No hidden modifiers.
-5. **Original content.** Ur shares a genre, not content: its civilizations, leaders, tech names,
-   art and rules text are its own.
+5. **Original content.** Civilizations, leaders, technology names, art and rules text are Ur's own.
 
-## 3. Core loop
+## 3. Scale
+
+- A **tile** is about 1.5 km across: a few fields, a single hill, a stretch of river, a grove.
+- A **person** (one population point) is a group of a few hundred people.
+- A **military unit** is a company. A real army is several units occupying several tiles, so
+  frontage and formation matter.
+- A **map** covers a region: a few river valleys and the land between them.
+
+## 4. Turn structure
+
+Turns are sequential: the human player, then each AI in a fixed order. A turn resolves in this order:
+
+1. **Start of turn (per civilization)**
+   1. Each settlement collects yields from its worked tiles and buildings.
+   2. Food: surplus is added to the settlement's food store; growth or starvation is applied.
+   3. Production: added to the current item; completed items appear; overflow carries over.
+   4. Science, gold and culture are added to the civilization's totals. Completed research applies.
+      Culture claims border tiles (§7.7).
+   5. Tier counters advance; tier changes apply (§7.3).
+   6. Units heal (§9.6). Auto-development counters advance (§8.2). Auto-roads extend (§8.4).
+2. **Player phase**: move units, attack, set production and projects, assign tiles, choose
+   research, set migration and border policy, make diplomatic moves.
+3. **End of round** (after every civilization has played): migration drift resolves (§10.3),
+   refugees move, the turn counter advances.
+
+## 5. Map
+
+### 5.1 Grid
+
+Pointy-top hexes in axial coordinates. Prototype map: **80×52** (~4,200 tiles), no wrap.
+
+### 5.2 Terrain
+
+Each tile has one base terrain and at most one feature. A feature replaces the base terrain's
+yields, travel cost and defence.
+
+| Terrain / feature | Food | Prod | Gold | Travel cost | Defence | Notes                        |
+|-------------------|------|------|------|-------------|---------|------------------------------|
+| Grassland         | 2    | 0    | 0    | 1           | 0%      |                              |
+| Plains            | 1    | 1    | 0    | 1           | 0%      |                              |
+| Desert            | 0    | 0    | 0    | 1           | 0%      |                              |
+| Tundra            | 1    | 0    | 0    | 1           | 0%      |                              |
+| Coast             | 1    | 0    | 1    | impassable  | –       | Workable (§7.5)              |
+| Ocean             | 1    | 0    | 0    | impassable  | –       | Not workable in prototype    |
+| Lake              | 2    | 0    | 1    | impassable  | –       | Workable; gives fresh water  |
+| Hills (feature)   | 0    | 2    | 0    | 2           | +25%    | +1 vision when standing here |
+| Forest (feature)  | 1    | 1    | 0    | 2           | +25%    |                              |
+| Marsh (feature)   | 1    | 0    | 0    | 3           | −15%    |                              |
+| Mountain          | –    | –    | –    | impassable  | –       | Blocks vision; not workable  |
+
+### 5.3 Rivers and fresh water
+
+- Rivers run along tile **edges**, from highlands to the coast or a lake.
+- Crossing a river edge costs **+1 travel** unless the edge is a **ford** or the move follows a
+  road (roads bridge rivers). Map generation marks about one river edge in eight as a ford.
+- A melee attack across a river edge (ford or not) suffers −20% strength.
+- A tile touching a river edge or adjacent to a lake has **fresh water** (used by farms, §8.1).
+
+### 5.4 Resources
+
+All resources are visible from the start.
+
+| Resource | Found on               | Bonus when worked                  | Kind      | Effect                              |
+|----------|------------------------|------------------------------------|-----------|-------------------------------------|
+| Wheat    | Grassland, plains      | +1 food                            | Bonus     |                                     |
+| Cattle   | Grassland              | +1 food, +1 prod with Pasture      | Bonus     |                                     |
+| Stone    | Hills, desert          | +1 prod                            | Bonus     |                                     |
+| Copper   | Hills                  | +1 prod with Mine                  | Strategic | Required to train Spearmen          |
+| Horses   | Plains, grassland      | +1 prod with Pasture               | Strategic | Required to train Chariots          |
+| Dates    | Desert with fresh water| +1 food, +1 gold                   | Luxury    | +3 stability per distinct luxury    |
+| Lapis    | Hills                  | +2 gold with Mine                  | Luxury    | +3 stability per distinct luxury    |
+
+A strategic resource counts for its civilization when at least one worked tile has it improved
+(Copper needs a Mine, Horses a Pasture). A luxury counts when at least one tile of it is worked.
+
+### 5.5 Generation
+
+From a seed: noise-based elevation and moisture produce terrain and features; rivers are traced
+downhill from high ground to coast or lake; fords are placed; resources are scattered by terrain
+with minimum spacing; start positions are chosen on fresh-water grassland or plains at least 20
+tiles apart. The same seed always produces the same map.
+
+### 5.6 Visibility
+
+Each civilization sees each tile in one of three states: **unexplored** (black), **explored**
+(terrain and last-seen settlements shown, units hidden), **visible** (everything current).
+
+- Units see 2 tiles; Scouts 3; +1 when standing on hills. Mountains block sight beyond them.
+- Settlements see every tile in their territory plus 1.
+
+## 6. Yields
+
+| Yield      | Scope        | Used for                                                     |
+|------------|--------------|--------------------------------------------------------------|
+| Food       | Settlement   | Feeding people; surplus fills the food store for growth      |
+| Production | Settlement   | Units, buildings, projects                                   |
+| Gold       | Civilization | Upkeep, rush-buying                                          |
+| Science    | Civilization | Research                                                     |
+| Culture    | Settlement   | Claiming border tiles beyond reach                           |
+
+- **Science** = 1 per person across the civilization, plus buildings.
+- **Culture** = 1 per Village-or-larger settlement, plus buildings.
+- **Gold** = urban tiles, worked coast/lake/luxury tiles, plus buildings.
+
+## 7. Settlements
+
+### 7.1 Founding
+
+A Migrants unit (§10.1) founds a **Camp** on its tile, with population equal to the people it
+carries. The tile must be land (not mountain), at least **6 tiles** from any other settlement's
+centre, and not inside another civilization's territory. A civilization's first settlement is its
+**capital**.
+
+### 7.2 Population and food
+
+- Each person **eats 4 food** per turn and **works 2 tiles**.
+- Surplus food fills the food store. When the store reaches the growth threshold, population
+  grows by 1 and the store empties (Granary keeps 25%).
+  Growth threshold: `15 + 6·(pop − 1) + (pop − 1)^1.6`, rounded down.
+- A food deficit drains the store. If the store is empty and the deficit continues, the settlement
+  loses 1 person. A settlement that reaches 0 people is abandoned and leaves ruins.
+
+### 7.3 Tiers
+
+Settlements climb a ladder of four tiers by **sustaining** population.
+
+| Tier    | Population | Footprint | Reach budget | Building slots | Unlocks                                  |
+|---------|------------|-----------|--------------|----------------|------------------------------------------|
+| Camp    | 1          | 1 tile    | 2            | 0              | Migrants, Scout, Warrior, projects       |
+| Village | 3          | 1 tile    | 3            | 2              | All military units; produces culture     |
+| Town    | 6          | 3 tiles   | 4            | 4              | Walls give a ranged attack               |
+| City    | 10         | 7 tiles   | 5            | 6              | National wonder                          |
+
+- **Upgrade**: when population has been at or above the next tier's threshold for **8
+  consecutive turns**, the settlement moves up. Any turn below the threshold resets the counter.
+- **Downgrade**: when population has been below the current tier's threshold for **8 consecutive
+  turns**, the settlement drops a tier. Camps never downgrade.
+- **Stagnation**: while civilization stability is negative, upgrade counters do not advance.
+- The settlement panel shows both counters as progress bars.
+
+### 7.4 Footprint
+
+The footprint is the settlement's built-up area. Footprint tiles are **urban**:
+
+- The **centre tile** yields 2 food, 1 production, 1 gold, plus any resource on it.
+- Other urban tiles yield 0 food, 2 production, 1 gold, and lose any improvement.
+- Footprint tiles are always worked and do not use people.
+
+On upgrade the footprint grows onto adjacent land tiles, choosing those with the lowest food yield
+(the town spreads onto poor land first). On downgrade the most recently added urban tiles revert
+to their terrain.
+
+### 7.5 Reach
+
+A settlement can work tiles within its **reach**: every tile whose cheapest travel cost from any
+footprint tile is within the tier's reach budget (§7.3). Travel cost is the same table units use
+to move (§5.2, §5.3; roads 0.5, §8.4), so reach is an irregular shape that follows the land:
+wide across plains, short into hills and marsh, stretched along roads, stopped by mountains.
+
+- Water tiles (coast, lake) are in reach if adjacent to a land tile in reach.
+- Where two settlements of the same civilization reach a tile, it belongs to the one that reaches
+  it more cheaply. Between civilizations, the existing owner keeps it; unowned contested tiles go
+  to the cheaper reach, ties to the older settlement.
+- Reach is recomputed only when roads, footprint or tier change.
+
+### 7.6 Working tiles
+
+A settlement works its footprint plus **2 tiles per person**, chosen from tiles in its territory.
+Assignment is automatic (maximise food until growth surplus ≥ 2 per person, then balance food and
+production). The player can lock individual tiles. People assigned to a project (§8.3) work no
+tiles.
+
+### 7.7 Territory
+
+A settlement's territory is every tile in its reach plus tiles claimed with culture. Villages and
+larger produce culture; when a settlement's stored culture reaches `10 + 5·(tiles claimed so far)`
+it claims one tile adjacent to its territory, preferring low travel cost and high yield. Claimed
+tiles are workable. Territory blocks other civilizations from founding settlements and, in peace,
+from entering with military units (§12).
+
+### 7.8 Production
+
+Each settlement builds one item at a time: a unit, a building, or a project. Overflow carries to
+the next item. Any item except a project can be finished by **rush-buying** at
+`3 gold × remaining production`.
+
+### 7.9 Buildings
+
+Each building takes one slot (§7.3). If a downgrade leaves more buildings than slots, the most
+recent ones go dormant (no effect, no upkeep) until slots return.
+
+| Building  | Cost | Upkeep | Tech         | Effect                                              |
+|-----------|------|--------|--------------|-----------------------------------------------------|
+| Shrine    | 40   | 1      | –            | +1 culture, +2 stability                            |
+| Granary   | 50   | 1      | Pottery      | +2 food; 25% of food store kept on growth           |
+| Barracks  | 60   | 1      | Bronze       | Units trained here get +10% strength                |
+| Walls     | 60   | 1      | Masonry      | +100 settlement HP, +6 defence; Town+ ranged attack |
+| Workshop  | 70   | 1      | Stoneworking | +2 production, +15% production                      |
+| Library   | 70   | 1      | Writing      | +2 science, +25% science from this settlement       |
+| Market    | 70   | 0      | Mathematics  | +2 gold, +25% gold from this settlement             |
+| Ziggurat  | 150  | 2      | Mathematics, Masonry | National wonder; City in capital only. +3 culture, +3 stability, +2 science |
+
+### 7.10 Defence and capture
+
+- Settlement HP: 200 (+100 with Walls). Defence strength: `8 + 2·population` (+6 with Walls).
+- Towns and Cities with Walls make one ranged attack per turn: strength equal to their defence,
+  range 2.
+- A settlement heals 20 HP per turn.
+- A settlement at 0 HP is captured when an enemy melee unit moves in. Ranged attacks cannot reduce
+  a settlement below 1 HP.
+- On capture: 25% of its people (rounded down) flee as refugees (§10.4), it drops one tier
+  (Camps are destroyed instead), and each building has a 50% chance to be destroyed.
+
+## 8. Land improvement
+
+There is no builder unit. Land is improved by settlements.
+
+### 8.1 Improvements
+
+| Improvement | Valid on                     | Effect                                   | Source              |
+|-------------|------------------------------|------------------------------------------|---------------------|
+| Farm        | Flat land                    | +1 food; +1 more with fresh water after Irrigation | Auto-development (Tilling) |
+| Pasture     | Cattle, Horses               | +1 production; enables resource          | Auto-development (Herding) |
+| Mine        | Hills                        | +1 production; enables Copper, Lapis     | Project (Stoneworking) |
+| Lumber Camp | Forest                       | +1 production                            | Project (Stoneworking) |
+| Road        | Any land                     | Travel cost 0.5; bridges rivers          | Project or auto-road (Wheel) |
+
+### 8.2 Auto-development
+
+A tile worked for **5 consecutive turns** gains its auto-development improvement (Farm or Pasture)
+once the civilization knows the required tech. A project can complete one immediately.
+
+### 8.3 Projects
+
+Projects are production items aimed at one tile in the settlement's territory, chosen on the map.
+
+| Project          | Cost             |
+|------------------|------------------|
+| Mine             | 25               |
+| Lumber Camp      | 20               |
+| Road             | 10 per tile      |
+| Repair           | 10               |
+| Rush development | 15               |
+
+While a project is in production it takes **1 person off tile work** as labour. Improving land
+competes directly with food and growth.
+
+### 8.4 Roads
+
+- Roads cost 0.5 travel for both units and reach, and bridge rivers.
+- **Auto-roads** (after Wheel): every 3 turns, each settlement extends one road tile toward its
+  nearest same-civilization settlement within 15 travel, along the cheapest path, until connected.
+- Road projects lay roads anywhere in territory, e.g. to extend reach to a distant valley.
+
+### 8.5 Pillage
+
+A military unit on an enemy improvement can spend its turn to pillage it: the improvement stops
+working and the unit gains 10 gold. Repair is a project.
+
+## 9. Units
+
+### 9.1 Stacking and movement
+
+- At most **one military and one civilian unit per tile**.
+- Units spend movement points to enter tiles at the tile's travel cost. A unit with any movement
+  left may enter a tile even if the cost exceeds what remains; this ends its move.
+- **Zone of control**: entering a tile adjacent to an enemy military unit ends the unit's move.
+- Land units cannot enter water.
+
+### 9.2 Roster
+
+| Unit      | Class    | Cost | Strength | Ranged (range) | Moves | Requires            |
+|-----------|----------|------|----------|----------------|-------|---------------------|
+| Migrants  | Civilian | 20 + people | – | –             | 4     | –                   |
+| Scout     | Recon    | 20   | 4        | –              | 6     | –                   |
+| Warrior   | Melee    | 30   | 8        | –              | 4     | –                   |
+| Slinger   | Ranged   | 35   | 5        | 7 (3)          | 4     | Hunting             |
+| Spearman  | Melee    | 50   | 11       | –              | 4     | Bronze, Copper      |
+| Bowman    | Ranged   | 50   | 7        | 10 (4)         | 4     | Archery             |
+| Chariot   | Mounted  | 55   | 12       | –              | 8     | Wheel, Horses       |
+| Swordsman | Melee    | 75   | 15       | –              | 4     | Ironworking         |
+
+Spearmen get +50% strength against Chariots.
+
+### 9.3 Upkeep
+
+Each civilization supports one military unit per settlement for free. Each further military unit
+costs 1 gold per turn.
+
+### 9.4 Actions
+
+Move, attack, fortify (+25% defence from the next turn until it moves), sleep, skip, pillage.
+Migrants: found camp, join settlement.
+
+### 9.5 Combat
+
+- Units have **100 HP**.
+- Effective strength = base × (1 + sum of modifiers) × `(0.5 + 0.5·HP/100)`.
+- Modifiers: terrain defence (§5.2), fortified +25%, attacking across a river −20%, flanking +10%
+  per other friendly military unit adjacent to the defender (max +30%), Barracks +10%, Spearman
+  vs Chariot +50%.
+- With ratio `r = attacker / defender`:
+  - Damage to defender: `30 · r^1.2 · rand(0.8, 1.2)`
+  - Damage to attacker (melee only): `30 · r^−1.2 · rand(0.8, 1.2)`
+  - Each clamped to [1, 100].
+- **Melee**: both sides take damage; if the defender dies the attacker moves into its tile.
+  Attacking uses all remaining moves.
+- **Ranged**: only the defender takes damage; needs the target within range and in sight.
+- A military unit entering a tile holding only an enemy civilian captures it.
+- The UI shows a combat preview (expected damage both ways) before the attack is confirmed.
+
+### 9.6 Healing
+
+A unit that neither moved nor attacked heals: +10 HP in neutral or enemy land, +15 in own
+territory, +25 in an own settlement.
+
+## 10. Migration
+
+### 10.1 Migrants
+
+- Built in any settlement with at least 2 people. Costs 20 production and **1 or 2 people**
+  (player's choice), who leave the settlement when the unit is complete.
+- Founds a Camp (§7.1) or joins an existing settlement of its civilization, adding its people.
+
+### 10.2 Attractiveness
+
+Each settlement has an attractiveness score:
 
 ```
-Turn start → yields collected (food, production, gold, science)
-  → player: move units, set settlement production, pick research, choose settlement projects
-  → end turn → AI turns → world events (border growth, migration) → next turn
+attractiveness = 2 × (food surplus per person)
+               + stability band modifier   (§11.3)
+               + 1 per active building
+               − 2 × max(0, population − next tier threshold)   (crowding)
+               − 5 if an enemy military unit is within 3 tiles
+               − 10 if besieged (enemy military adjacent for 2+ turns)
 ```
 
-Session goal for the prototype: a full game on a small map in **60–90 minutes**.
+### 10.3 Drift
 
-## 4. Systems
-
-### 4.1 Scale
-
-Ur's tiles cover **less ground than Civ's**. Working ratio: one Civ-sized hex ≈ one Ur hex plus
-its ring (7 Ur hexes, ~2.6× finer linearly). A tile is a few fields, a hill, a stretch of river —
-not a whole district. Consequences, all first guesses for tuning:
-
-- **Settlements occupy space.** Footprint grows with tier (§4.5): a City sprawls across several
-  urban tiles, visibly replacing farmland.
-- **Distances scale up.** Settlement reach, spacing, unit moves and ranged ranges are roughly
-  2× Civ's. Reach is measured in travel cost, not tiles (§4.5).
-- **The world is a region, not a continent.** Same map tile count budget buys a smaller area: a
-  few river valleys and the land between them.
-- **Terrain reads at human scale.** Single hills, fords, groves and marsh patches matter for
-  movement and battle; armies span several tiles, so formations and frontage emerge.
-- **Risk: busywork.** More tiles means more improvements. There are no worker units: worked
-  tiles auto-develop and other improvements are settlement projects (§4.10).
-- **Risk: performance.** ~4× the tiles of an equivalent Civ map. Rendering is chunked and culled;
-  AI site scoring samples candidates instead of scanning every tile.
-
-### 4.2 Map
-
-- Hex grid, pointy-top, axial coordinates. Prototype size: **80×52** (~4,200 tiles), no wrap —
-  roughly a 30×20 Civ-equivalent region.
-- Terrain: grassland, plains, desert, tundra, coast, ocean, plus features: hills, forest, marsh,
-  mountains (impassable).
-- Rivers run along hex **edges** (affects crossing penalties and fresh-water adjacency).
-- Procedural generation from a seed: noise-based elevation and moisture → terrain; rivers traced
-  downhill from highlands to coast.
-- Fog of war: unexplored (black), explored (last-seen state), visible.
-
-### 4.3 Yields
-
-| Yield      | Used for                                  |
-|------------|-------------------------------------------|
-| Food       | Settlement growth                         |
-| Production | Units, buildings, wonders                 |
-| Gold       | Upkeep, buying items, rush-buying         |
-| Science    | Research                                  |
-| Culture    | Border expansion (prototype: no policies) |
-
-Each tile has a base yield from terrain + feature + improvement + resource. A settlement works its
-footprint tiles plus **two tiles per population point** (finer tiles, so each person works more of
-them); tile assignment is automatic by default with manual override.
-
-### 4.4 Fresh water
-
-Tiles adjacent to a river or lake have fresh water. Farms need it for their full bonus. (Floods and
-canals are parked in §10.)
-
-### 4.5 Settlements
-
-Settlements replace fixed cities. They climb a tier ladder by **sustaining** population.
-
-| Tier    | Pop to reach | Footprint (tiles) | Reach (travel) | Building slots | Unlocks                   |
-|---------|--------------|-------------------|----------------|----------------|---------------------------|
-| Camp    | 1            | 1                 | 2              | 0              | Migrants, Scout           |
-| Village | 3            | 1                 | 3              | 2              | Military units, borders   |
-| Town    | 6            | 3                 | 4              | 4              | Walls, ranged attack      |
-| City    | 10           | 7                 | 5              | 6              | Wonders, advanced units   |
-
-Footprint tiles are urban: they yield production and gold, not food, and expand automatically onto
-the best adjacent tiles on tier-up. Buildings live in footprint tiles.
-
-Numbers are first guesses for tuning.
-
-**Reach** replaces a fixed work radius. A settlement can work any tile whose cheapest travel cost
-from its footprint is within its tier's reach budget — an isochrone, not a circle. Travel cost uses
-the **same terrain table as unit movement** (§4.7), so players learn one rule:
-
-| Terrain                              | Travel cost |
-|--------------------------------------|-------------|
-| Road                                 | 0.5         |
-| Grassland, plains, desert, tundra    | 1           |
-| Hills, forest                        | 2           |
-| Marsh                                | 3           |
-| River crossing (no ford/road)        | +1          |
-| Mountain, water                      | impassable  |
-
-Consequences:
-
-- Open plains give a wide footprint; settlements in hills or forest stay compact.
-- Roads extend reach: a road project is how a settlement claims a distant mine or valley.
-- Mountains and marshes form natural borders between settlements and civilizations.
-- Where two settlements' reaches overlap, a tile belongs to whichever reaches it more cheaply
-  (owner's existing claim wins ties). Contested tiles between civilizations show on the map.
-- Reach recomputes (Dijkstra over a small area) only when roads, footprint or tier change.
-- The settlement screen shades reachable tiles and tooltips show "travel 2.5 of 4".
-
-- **Upgrade**: hold population ≥ the next tier's threshold for **N turns** (proposed 8). A progress
-  bar shows the count.
-- **Downgrade**: below the current tier's threshold for N turns, the settlement drops a tier.
-  The gap between rules prevents flicker.
-- Population grows when stored food reaches a threshold (`15 + 6·(pop-1) + (pop-1)^1.6`, tuned
-  later). Each person eats 2 food.
-- Minimum 6 tiles between settlements.
-- Borders (Village+) cover the settlement's reach; culture adds tiles beyond it one at a time,
-  preferring cheap-to-reach, high-yield ones.
-- One production item at a time.
-- Settlements have HP; Town+ with walls has a ranged attack. Captured at 0 HP by a melee unit.
-
-### 4.6 Migration
-
-Population moves. Two channels:
-
-1. **Migrants (directed).** A unit built by removing 1–2 population from a settlement. Founds a
-   Camp on an empty site or joins an existing settlement of its civilization. Replaces the
-   classic settler. Every migrant sent delays the home settlement's next tier: wide vs tall is one
-   decision.
-2. **Drift (automatic).** Each turn people may move from a settlement to a more **attractive** one
-   nearby, **regardless of owner**.
-   - Attractiveness = f(food surplus, stability, safety, crowding, amenities).
-   - Dampers: pull decays with distance; capped flow per settlement per turn; crowding lowers
-     attractiveness; a home-attachment bias resists leaving.
-   - Player levers, not micromanagement: per-settlement *encourage / restrict* emigration, and
-     per-neighbour *open / closed* borders (closing costs stability).
-   - War displaces people: settlements under siege or recently captured shed refugees.
-   - Every movement is logged with a reason ("2 people left Eridu for Kish: famine").
-
-Cross-civilization drift is soft power: a well-run empire grows by absorbing its rivals' people;
-a badly-run one bleeds them. Later layer (not prototype): migrants keep an origin identity until
-integrated; a majority-foreign settlement can defect.
-
-### 4.7 Units
-
-One military unit and one civilian unit per tile; at Ur's scale a unit is a company, not an army,
-so a real force spans several tiles. Movement points; terrain costs from the travel table in
-§4.5 (river crossing ends movement except at fords or roads). Zone of control: entering a tile adjacent to an enemy
-costs all remaining moves.
-
-Prototype roster:
-
-| Unit      | Role     | Str | Ranged | Moves | Unlock      |
-|-----------|----------|-----|--------|-------|-------------|
-| Migrants  | Civilian | –   | –      | 4     | start       |
-| Scout     | Recon    | 4   | –      | 6     | start       |
-| Warrior   | Melee    | 8   | –      | 4     | start       |
-| Slinger   | Ranged   | 5   | 7 (r3) | 4     | Hunting     |
-| Spearman  | Melee    | 11  | –      | 4     | Bronze      |
-| Chariot   | Mounted  | 12  | –      | 8     | Wheel       |
-| Bowman    | Ranged   | 7   | 10 (r4)| 4     | Archery     |
-
-### 4.8 Combat
-
-- Units have 100 HP. Damage dealt scales with the strength ratio:
-  `damage = 30 · exp(0.04 · (attackerStr − defenderStr)) · rand(0.8, 1.2)`, clamped to [1, 100].
-- Modifiers: terrain defense (hills/forest +25%), river attack penalty (−20%), flanking (+10% per
-  adjacent friendly unit), wounded penalty (strength scales down with HP).
-- Melee: both sides take damage; attacker moves in if defender dies. Ranged: no retaliation.
-- Healing: +10 HP/turn in field, +20 in friendly territory, +25 in a settlement, only if unit didn't act.
-- Combat preview tooltip shows expected damage both ways before committing.
-
-### 4.9 Technology
-
-A small DAG (~13 techs) for the prototype. Names are Ur's own:
+At the end of each round, each settlement with at least 2 people compares itself with every
+settlement within **12 travel**, of any civilization. For the best target:
 
 ```
-Foraging ─┬─ Hunting ── Archery
-          ├─ Herding ── Wheel
-          └─ Tilling ─┬─ Irrigation
-                      └─ Pottery ── Writing ── Mathematics
-Stoneworking ── Masonry ── Bronze ── Ironworking
+pull = attractiveness(target) − attractiveness(home) − 0.5 × travel − attachment
 ```
 
-Each tech unlocks units, buildings or improvements. Cost grows with tech count.
+If pull > 0, one person moves with probability `min(0.5, pull / 10)`. At most one person leaves a
+settlement per round. `attachment` is 3 by default.
 
-### 4.10 Buildings & improvements
+Player levers:
 
-Buildings (prototype): Granary, Shrine, Barracks, Walls, Workshop, Library, Market, Ziggurat
-(national wonder, capital only). Each takes a building slot (§4.5).
+- Per settlement: **restrict emigration** (attachment 6) or **encourage emigration**
+  (attachment 0).
+- Per neighbouring civilization: **open or closed borders**. Closed borders block migration
+  both ways and cost 2 stability per closed border.
 
-Improvements: Farm, Mine, Pasture, Lumber Camp, Road. There is **no worker unit**: in Civ the
-worker matters for a few early turns and is then automated or ignored, and at Ur's finer scale it
-would be pure busywork. Improvements come from settlements instead:
+Every move is logged with its cause, e.g. "1 person left Redbank for Two Fords: food".
 
-- **Auto-development**: a worked flat tile becomes a Farm, and a worked pasture-resource tile a
-  Pasture, after a few turns of being worked.
-- **Projects**: Mine, Lumber Camp, Road and Repair are items in a settlement's production list,
-  targeted at a tile within its borders. They cost production, and while one runs it takes
-  **1 population off tile work** as labour — improving land competes with food, growth and
-  migrants (pillar 3). A project can also rush an auto-development.
-- **Auto-roads**: settlements in the same civilization slowly connect along the cheapest route.
-  Road projects aim a road somewhere specific.
-- **Pillage**: military units pillage enemy improvements; repair is a cheap project.
+### 10.4 Refugees
 
-Resources (prototype): Wheat, Cattle, Stone, Copper, Horses. Copper and Horses gate Spearman and
-Chariot respectively (strategic resources, simple yes/no gating in prototype).
+People displaced by capture or siege go to the nearest settlement of their civilization; if there
+is none within 12 travel, to the most attractive settlement within 12 travel of any civilization
+with open borders; otherwise they are lost. A besieged settlement loses 1 person to refugees with
+50% chance each round.
 
-### 4.11 Economy & stability
+## 11. Economy
 
-- Gold: from tiles, markets, and a flat per-settlement amount. Spent on unit/building upkeep and
-  rush-buying.
-- **Stability** (simplified happiness): empire-wide number. Each settlement and each population
-  point costs stability; luxury resources and shrines add it. Negative stability slows growth and
-  production and lowers attractiveness, so people emigrate. One number, one tooltip.
+### 11.1 Gold
 
-### 4.12 AI
+Income from urban tiles, worked coast, lake and luxury tiles, Markets and pillaging. Expenses are
+unit upkeep (§9.3) and building upkeep (§7.9). If the treasury is empty and income is negative,
+every settlement's production is reduced by 25% until it recovers.
 
-- Prototype: 2–3 rule-based opponents.
-- Priorities by weighted scoring: expand (send migrants to best scored site), defend (garrison
-  threatened settlements), attack (target weakest adjacent rival when military ratio > 1.5),
-  tier up (hold population when a settlement is close to its next tier).
-- Migration levers and border policy set from simple rules (close borders when net outflow to a
-  neighbour exceeds a threshold).
-- Same rules and information as the player (respects fog of war). No cheating bonuses except an
-  optional difficulty yield multiplier.
+### 11.2 Stability
 
-### 4.13 Victory
+One civilization-wide number:
 
-- **Conquest**: control every original capital.
-- **Score**: highest score at turn 150 (population, techs, territory, wonders).
+```
+stability = 4
+          + 3 per distinct luxury
+          + buildings (Shrine +2, Ziggurat +3)
+          − 1 per settlement
+          − 1 per 3 people across the civilization (rounded down)
+          − 2 per closed border
+```
 
-### 4.14 Diplomacy
+### 11.3 Stability bands
 
-Prototype: war/peace state and open/closed borders per neighbour. Declare war, propose peace
-(AI accepts based on war score).
+| Stability  | Effect                                                            |
+|------------|-------------------------------------------------------------------|
+| 0 or more  | No penalty; attractiveness +0                                     |
+| −1 to −9   | Food surplus −50%; tier upgrades stall; attractiveness −2         |
+| −10 or less| No growth; production −25%; tier upgrades stall; attractiveness −4|
 
-## 5. Interface
+The top bar shows stability with a tooltip listing every term.
+
+## 12. Diplomacy
+
+- Two states between civilizations: **peace** and **war**. Civilizations start at peace when they
+  meet.
+- At peace, military units cannot enter the other's territory; civilians can.
+- A civilization can declare war after 10 turns of peace. Peace can be proposed after 10 turns of
+  war; the AI accepts if its war score is negative or the war has lasted 20 turns with no
+  settlement changing hands. War score = units destroyed + 5 × settlements captured, minus the
+  same for the opponent.
+- Border policy (open/closed) is set separately and governs migration only (§10.3).
+
+## 13. Technology
+
+Research produces one tech at a time from civilization-wide science. Every civilization starts
+knowing Foraging.
+
+| Tech         | Cost | Requires              | Unlocks                                         |
+|--------------|------|-----------------------|-------------------------------------------------|
+| Foraging     | –    | –                     | Start                                           |
+| Hunting      | 20   | Foraging              | Slinger                                         |
+| Herding      | 20   | Foraging              | Pasture                                         |
+| Tilling      | 20   | Foraging              | Farm                                            |
+| Stoneworking | 20   | –                     | Mine, Lumber Camp, Workshop                     |
+| Archery      | 45   | Hunting               | Bowman                                          |
+| Wheel        | 45   | Herding               | Chariot, roads, auto-roads                      |
+| Irrigation   | 45   | Tilling               | +1 food on Farms with fresh water               |
+| Pottery      | 45   | Tilling               | Granary                                         |
+| Masonry      | 45   | Stoneworking          | Walls                                           |
+| Bronze       | 80   | Masonry               | Spearman, Barracks                              |
+| Writing      | 80   | Pottery               | Library                                         |
+| Mathematics  | 130  | Writing               | Market; Ziggurat (with Masonry)                 |
+| Ironworking  | 130  | Bronze                | Swordsman                                       |
+
+## 14. Players and AI
+
+- Prototype: one human against 2 AI civilizations.
+- Each civilization starts with Migrants carrying 2 people, a Warrior and a Scout, 0 gold, and
+  Foraging.
+- AI chooses by weighted scoring each turn:
+  - **Expand**: send Migrants to the best-scored site (food and production in prospective reach,
+    fresh water, distance from rivals), sampled from candidates instead of every tile.
+  - **Hold**: stop building Migrants in a settlement close to its next tier.
+  - **Defend**: garrison settlements with enemy units within 5 tiles.
+  - **Attack**: declare war on the weakest neighbour when its military strength ratio is above 1.5.
+  - **Policy**: close borders to a neighbour when net outflow to it exceeds 1 person per 5 turns.
+- The AI uses the same rules and sees only what its units and settlements see. Difficulty may
+  apply a yield multiplier; no other bonuses.
+
+## 15. Victory
+
+- **Conquest**: a civilization controls every capital (§7.1). A civilization with no settlements
+  and no Migrants is eliminated.
+- **Score**: at the end of turn 150, highest score wins.
+
+```
+score = 4 × population
+      + tier points (Camp 1, Village 2, Town 4, City 8)
+      + 5 × techs known
+      + 0.5 × territory tiles
+      + 20 for the Ziggurat
+```
+
+## 16. Interface
 
 - Full-window map canvas with pan (drag), zoom (wheel/pinch), and keyboard shortcuts.
 - Top bar: yields per turn, stability, current research, turn number, End Turn button.
-- Right panel: selected unit or settlement detail.
-- Settlement screen: tier progress, reach overlay, tile yield overlay, worked tiles, production picker,
-  building slots, migration levers.
-- Migration log and a map overlay showing net flows between settlements.
+- Right panel: selected unit or settlement.
+- Settlement screen: tier progress bars, reach overlay, tile yields, worked and locked tiles,
+  production list, building slots, migration lever.
+- Project targeting: pick a project, then a tile on the map (valid tiles highlighted).
+- Migration log and a map overlay of net flows between settlements.
+- Diplomacy panel: war/peace and border policy per known civilization.
 - Tech tree screen.
 - Hover tooltips on everything that has a number.
-- Unit action bar: move, attack, fortify, sleep, skip, pillage, found camp.
-- Project targeting: pick a project, then a tile on the map (valid tiles highlighted).
-- Flat colour only — no gradients. Hex art is flat-shaded vector shapes in the prototype.
+- Unit action bar: the actions in §9.4.
+- Flat colour only, no gradients. Prototype art is flat vector shapes.
 
-## 6. Technical architecture
+## 17. Technical architecture
 
 ```
 src/
@@ -287,6 +520,8 @@ Principles:
 - **Determinism.** Seeded RNG stored in game state; no `Math.random()` in `core/`.
 - **Serializable state.** Plain JSON objects; save = `JSON.stringify(state)` into IndexedDB.
 - **Headless tests.** Simulation tested with Vitest, including full AI-vs-AI games as smoke tests.
+- **Performance.** Rendering is chunked and culled; reach is recomputed only on change; AI site
+  scoring samples candidates.
 
 Proposed stack (prefer existing libraries):
 
@@ -298,82 +533,142 @@ Proposed stack (prefer existing libraries):
 | Noise          | simplex-noise                            |
 | Seeded RNG     | pure-rand                                |
 | UI panels      | Svelte 5 over the canvas                 |
-| Pathfinding    | A* over hex graph (small; own code or `ngraph.path`) |
+| Pathfinding    | A*/Dijkstra over hex graph (own code or `ngraph.path`) |
 | Storage        | idb-keyval (IndexedDB)                   |
 | Tests          | Vitest                                   |
 
-Deploy target: static site (e.g. Cloudflare Pages/Workers static assets). No server in prototype.
+Deploy target: static site (e.g. Cloudflare Workers static assets). No server in prototype.
 
-## 7. Prototype scope
+## 18. Prototype scope
 
-Goal: **prove the core loop is fun** on one small map against AI, with settlement tiers and
+Goal: **prove the core loop is fun** on one map against AI, with settlement tiers, reach and
 migration in play.
 
 ### In scope
 
-- Single player vs 2 AI, one map size, one difficulty.
-- Everything in §4 at the listed prototype size.
+- Everything in §§3–16 at the listed sizes.
+- One human vs 2 AI, one map size, one difficulty.
 - Save/load (one slot + autosave each turn).
 - Flat vector placeholder art.
 
-### Out of scope (later)
+### Out of scope
 
-- Multiplayer, hotseat
-- Religion, policies/culture trees, great people, trade routes, espionage
-- City-states, barbarians
-- Naval units and embarkation
-- Eras beyond Iron Age, unit upgrades/promotions
-- Detailed diplomacy (deals, alliances, trading)
-- Sound, music, animation polish
-- Map wrap, multiple map sizes/types
-- Migrant identity and integration, settlement defection
-- Everything in §10
+See Appendix A for the full list of genre features Ur leaves out. Also out of the prototype:
+sound and music, animation polish, multiple map sizes, migrant identity (§20).
 
 ### Success criteria
 
 1. A full game plays to a victory without crashes or soft-locks.
 2. Average turn (player + AI) resolves in under 1 s on a mid-range laptop at turn 150.
 3. Playtesters make a settle/production/war decision they can explain on most turns.
-4. Players can name a turn where they chose between sending migrants and holding population for
+4. Players can name a turn where they chose between sending Migrants and holding population for
    a tier-up.
-5. Cross-civilization drift changes population noticeably in at least some games without one civ
-   draining all others (or dampers are retuned).
+5. Cross-civilization drift changes population noticeably in some games without one
+   civilization draining all others.
 
-## 8. Milestones
+## 19. Milestones
 
 See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 
 | # | Milestone              | Outcome                                                        |
 |---|------------------------|----------------------------------------------------------------|
-| 0 | Skeleton               | Vite + TS + Pixi + Svelte app, Vitest, CI-free local scripts   |
+| 0 | Skeleton               | Vite + TS + Pixi + Svelte app, Vitest, local scripts           |
 | 1 | Map                    | Seeded map gen, render, pan/zoom, hover tile info              |
 | 2 | Units & movement       | Select, pathfind, move, fog of war, end turn                   |
-| 3 | Settlements            | Found camp, yields, growth, tiers, production, borders         |
+| 3 | Settlements            | Found camp, yields, growth, tiers, reach, production, borders  |
 | 4 | Tech & improvements    | Research, auto-development, projects, resources                |
 | 5 | Combat                 | Melee/ranged, preview, healing, settlement capture             |
 | 6 | AI                     | Rule-based AI that expands and fights                          |
-| 7 | Migration              | Migrants, drift, cross-civ flows, border policy, log           |
+| 7 | Migration              | Drift, cross-civ flows, border policy, refugees, log           |
 | 8 | Victory & save         | Conquest/score victory, save/load, end screen                  |
 | 9 | Playtest & tune        | Balance pass against success criteria                          |
 
-## 9. Open questions
+## 20. Open questions
 
 1. UI framework: Svelte 5 vs. plain DOM vs. React? (Proposed: Svelte.)
-2. Art direction: flat vector placeholders now — eventual style (flat illustrated, low-poly, pixel)?
-3. Theme: Bronze Age Mesopotamia-flavoured setting, or ahistorical/fantasy civilizations?
-4. Scale ratio: is ~2.6× finer than Civ (one Civ hex ≈ 7 Ur hexes) the right grain? Finer
-   adds tactical texture and cost (tiles, busywork, AI time).
-5. Turn limit and map size — is 150 turns on 80×52 the right length for 60–90 minutes?
-6. Should migration (M7) move earlier, since tiers depend on population pressure?
-7. Do auto-development and projects leave enough agency over tile improvement?
-8. Is the reach isochrone readable enough on screen, or does it need a simplified display?
+2. Art direction: flat vector placeholders now; eventual style (flat illustrated, low-poly, pixel)?
+3. Theme: Bronze Age Mesopotamia-flavoured setting, or invented civilizations?
+4. Tile grain: is ~1.5 km per tile right, given the cost in tiles, AI time and screen density?
+5. Turn limit and map size: is 150 turns on 80×52 the right length for 60–90 minutes?
+6. Should migration drift (M7) move earlier, since tiers depend on population pressure?
+7. Do auto-development and projects leave enough agency over land improvement?
+8. Is the reach shape readable on screen, or does it need a simplified display?
 
-## 10. Idea backlog
+## 21. Idea backlog
 
-Candidate differentiators, not committed:
+Not committed:
 
 - **Floods**: river tiles flood on a telegraphed schedule (+food, pillage unprotected
   improvements, levees protect). Would push people out and threaten tiers.
 - **Canals**: extend fresh water inland; make new land attractive to migrants.
-- **Migrant identity**: origin identity, integration over time, defection of majority-foreign
-  settlements.
+- **Migrant identity**: people keep an origin identity until integrated; a majority-foreign
+  settlement can defect.
+
+## Appendix A. Lineage
+
+Ur belongs to the 4X strategy genre and takes Civilization V as its main reference. This appendix
+records exactly what Ur takes, what it takes in changed form, and what it leaves out.
+
+### Taken
+
+- Turn-based play on a hex map; human player then AI players each turn.
+- Tile yields from terrain, feature, improvement and resource; the five yields food, production,
+  gold, science and culture.
+- Rivers on tile edges; fresh water; attack penalty across rivers.
+- Three-state fog of war.
+- One military unit per tile, plus one civilian; movement points with terrain costs; roads;
+  zone of control.
+- Unit classes: recon, melee, ranged, mounted, civilian.
+- Combat: 100 HP units; melee with retaliation, ranged without; damage from strength ratio with
+  randomness; terrain defence, fortify, flanking and wounded penalties; location-based healing;
+  combat preview.
+- Settlements with HP and a ranged attack, captured by melee units.
+- Population growth from a food store with rising thresholds; people working tiles with automatic
+  assignment and manual override.
+- Culture claiming border tiles one at a time.
+- One production item at a time; rush-buying with gold.
+- Buildings with yield effects; one national wonder.
+- Strategic resources gating units; luxury resources feeding empire-wide contentment.
+- A tech tree as a dependency graph; science from population.
+- Gold economy with unit and building upkeep.
+- War and peace between civilizations; military units barred from foreign territory in peace.
+- Conquest victory by capitals; score victory at a turn limit.
+- AI bound by the same rules.
+
+### Taken in changed form
+
+| Civilization V                      | Ur                                                                        |
+|-------------------------------------|---------------------------------------------------------------------------|
+| Cities of any size, fixed 1-tile    | Settlements in four tiers held by sustained population; multi-tile footprint |
+| Fixed 3-tile working radius         | Reach measured in travel cost, growing with tier                          |
+| Settler unit, built with production | Migrants, which cost people and can also join a settlement                |
+| Worker unit builds improvements     | Auto-development of worked tiles; projects that take labour from population |
+| One citizen works one tile          | One person works two tiles at finer scale                                 |
+| Happiness                           | Stability, which also drives migration and stalls tier upgrades           |
+| Open borders allow unit passage     | Border policy controls migration; unit passage follows war/peace          |
+| River crossing ends movement        | River crossing costs +1 travel; fords and roads cross freely              |
+| Tiles at continental scale          | ~1.5 km tiles; units are companies; regional maps                         |
+| Tech tree across all eras           | 14 techs, Bronze to Iron Age, original names                              |
+
+### Left out
+
+- Social policies, ideologies, and culture/tourism victory
+- Religion, faith and pantheons
+- Great people, great works, and great generals
+- World wonders and natural wonders
+- City-states
+- Barbarians and ancient ruins
+- Naval units, embarkation, harbours, and air units
+- Trade routes, caravans, and city connections
+- Espionage
+- World Congress and diplomatic victory
+- Science victory
+- Unit experience, promotions and upgrades
+- Golden ages
+- Specialists and tile purchase with gold
+- Puppet, annex and raze choices on capture
+- Diplomatic deals, denunciation, friendship and research agreements
+- Unique civilization abilities, units and buildings
+- Eras beyond the Iron Age
+- Multiple map types and sizes; map wrap
+- Hotseat and multiplayer
