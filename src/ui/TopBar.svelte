@@ -3,7 +3,8 @@
   import { stability, stabilityTerms } from '../core/migration';
   import { activeBuildings, settlementYields } from '../core/settlement';
   import { civSettlements } from '../core/world';
-  import { endTurn, endTurnLabel, gs, idleUnits, selectNextUnit, ui } from './store.svelte';
+  import { idleSettlements } from '../core/game';
+  import { endTurn, endTurnLabel, gs, idleUnits, selectNextIdleSettlement, selectNextUnit, ui } from './store.svelte';
 
   const view = $derived.by(() => {
     ui.tick;
@@ -29,6 +30,7 @@
       research: civ.researching ? `${TECH[civ.researching].name} ${civ.science}/${TECH[civ.researching].cost}` : 'Choose research',
       researchPct: civ.researching ? Math.min(100, (100 * civ.science) / TECH[civ.researching].cost) : 0,
       idle: idleUnits().length,
+      idleSt: idleSettlements(s, 0).length,
       endLabel: endTurnLabel(),
       offers,
     };
@@ -49,6 +51,11 @@
   <button onclick={() => (ui.screen = 'diplomacy')}>Diplomacy{#if view.offers}<b class="badge">{view.offers}</b>{/if}</button>
   <button onclick={() => (ui.screen = 'log')}>Log</button>
   <button onclick={() => (ui.screen = 'help')}>?</button>
+  {#if view.idleSt > 0}
+    <button class="warn" onclick={() => selectNextIdleSettlement()} title="Settlements with nothing in production (does not block End turn)">
+      {view.idleSt} not producing
+    </button>
+  {/if}
   {#if view.idle > 0}
     <button onclick={() => selectNextUnit()} title="Next unit needing orders (N)">{view.idle} idle</button>
   {/if}
@@ -105,6 +112,10 @@
   }
   .spacer {
     flex: 1;
+  }
+  .warn {
+    border-color: var(--warn);
+    color: var(--warn);
   }
   .primary.blocked {
     background: var(--panel-2);

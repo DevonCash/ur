@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { attack } from '../src/core/combat';
 import { TECH_ORDER, TIER_TURNS } from '../src/core/data';
-import { applyAction, foodBreakdown, hooks, needsOrders, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
+import { applyAction, foodBreakdown, hooks, idleSettlements, needsOrders, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
 import { neighbour } from '../src/core/hex';
 import { resolveDrift } from '../src/core/migration';
 import { assignWorked, computeReach, settlementYields } from '../src/core/settlement';
@@ -174,11 +174,12 @@ describe('project targets (#9)', () => {
 });
 
 describe('turn blockers (#1, #5)', () => {
-  it('lists idle units, missing research and empty production, in that order', () => {
+  it('lists idle units then missing research; empty production is only a warning', () => {
     const s = flatState();
     const st = foundAt(s, 0, cr(s, 10, 10), 3);
     const w = createUnit(s, 0, 'warrior', cr(s, 12, 10), st.id);
-    expect(turnBlockers(s, 0).map((b) => b.kind)).toEqual(['unit', 'research', 'production']);
+    expect(turnBlockers(s, 0).map((b) => b.kind)).toEqual(['unit', 'research']);
+    expect(idleSettlements(s, 0)).toEqual([st.id]);
 
     // a unit that moved but still has moves left is still idle
     w.moves = 2;
@@ -193,8 +194,9 @@ describe('turn blockers (#1, #5)', () => {
     expect(turnBlockers(s, 0).some((b) => b.kind === 'unit')).toBe(false);
 
     s.civs[0].researching = 'tilling';
-    st.production = { kind: 'unit', unit: 'warrior' };
     expect(turnBlockers(s, 0)).toEqual([]);
+    st.production = { kind: 'unit', unit: 'warrior' };
+    expect(idleSettlements(s, 0)).toEqual([]);
   });
 
   it('does not ask for research once every tech is known', () => {

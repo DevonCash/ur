@@ -2,7 +2,7 @@
 import { del, get, set } from 'idb-keyval';
 import { runUntilHuman } from '../ai/ai';
 import type { ProjectKind } from '../core/data';
-import { applyAction, needsOrders, newGame, turnBlockers, type Action, type TurnBlocker } from '../core/game';
+import { applyAction, idleSettlements, needsOrders, newGame, turnBlockers, type Action, type TurnBlocker } from '../core/game';
 import type { GameState } from '../core/types';
 import { isMilitary, unitById } from '../core/world';
 
@@ -116,7 +116,6 @@ export function act(a: Action): boolean {
 const BLOCKER_LABEL: Record<TurnBlocker['kind'], string> = {
   unit: 'Unit needs orders',
   research: 'Choose research',
-  production: 'Choose production',
 };
 
 /** Label for the End Turn button: the first thing that must be decided, or "End turn". */
@@ -134,21 +133,32 @@ function resolveBlocker(): boolean {
     ui.selectedUnit = b.id;
     ui.selectedSettlement = null;
     focusOn?.(unitById(game!, b.id)!.tile);
-  } else if (b.kind === 'research') {
-    ui.screen = 'tech';
   } else {
-    ui.selectedSettlement = b.id;
-    ui.selectedUnit = null;
-    focusOn?.(game!.settlements.find((x) => x.id === b.id)!.center);
+    ui.screen = 'tech';
   }
   flash(BLOCKER_LABEL[b.kind]);
   refresh();
   return true;
 }
 
+/** Select the next settlement with nothing in production (warning, not a blocker). */
+export function selectNextIdleSettlement() {
+  if (!game) return;
+  const ids = idleSettlements(game, 0);
+  if (!ids.length) return;
+  const i = ui.selectedSettlement === null ? -1 : ids.indexOf(ui.selectedSettlement);
+  const id = ids[(i + 1) % ids.length];
+  ui.selectedSettlement = id;
+  ui.selectedUnit = null;
+  focusOn?.(game.settlements.find((x) => x.id === id)!.center);
+  refresh();
+}
+
 export function endTurn() {
   if (!game || ui.busy || game.winner !== null) return;
   if (resolveBlocker()) return;
+  const idle = idleSettlements(game, 0).length;
+  if (idle) flash(`Ended turn with ${idle} settlement${idle > 1 ? 's' : ''} producing nothing`);
   ui.busy = true;
   ui.projectMode = null;
   // let the UI paint the busy state before running AI turns

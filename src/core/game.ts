@@ -750,7 +750,7 @@ export function endTurn(s: GameState): void {
 
 // Turn blockers --------------------------------------------------------------------------------
 
-export type TurnBlocker = { kind: 'unit'; id: number } | { kind: 'research' } | { kind: 'production'; id: number };
+export type TurnBlocker = { kind: 'unit'; id: number } | { kind: 'research' };
 
 /** A unit needs orders while it has moves left and no standing order (sleep, fortify). */
 export function needsOrders(u: Unit): boolean {
@@ -799,15 +799,19 @@ function runStandingOrders(s: GameState, civId: number) {
   }
 }
 
-/** What must be decided before a civ may end its turn: idle units, research, empty production. */
+/** What must be decided before a civ may end its turn: idle units, then research. */
 export function turnBlockers(s: GameState, civId: number): TurnBlocker[] {
   const out: TurnBlocker[] = [];
   for (const u of civUnits(s, civId)) if (needsOrders(u)) out.push({ kind: 'unit', id: u.id });
   const civ = s.civs[civId];
   const canResearch = TECH_ORDER.some((t) => !civ.techs.includes(t) && TECH[t].requires.every((r) => civ.techs.includes(r)));
   if (!civ.researching && canResearch) out.push({ kind: 'research' });
-  for (const st of civSettlements(s, civId)) if (!st.production) out.push({ kind: 'production', id: st.id });
   return out;
+}
+
+/** Settlements with nothing in production: a warning, not a blocker. */
+export function idleSettlements(s: GameState, civId: number): number[] {
+  return civSettlements(s, civId).filter((st) => !st.production).map((st) => st.id);
 }
 
 // Actions -----------------------------------------------------------------------------------
