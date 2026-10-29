@@ -325,19 +325,28 @@ working and the unit gains 10 gold. Repair is a project.
 
 ### 9.2 Roster
 
-| Unit      | Class    | People | Obtained                    | Strength | Ranged (range) | Moves | Requires        |
-|-----------|----------|--------|-----------------------------|----------|----------------|-------|-----------------|
-| Migrants  | Civilian | 1–2    | Trained, 20 prod            | –        | –              | 4     | –               |
-| Scout     | Recon    | 1      | Trained, 20 prod            | 4        | –              | 6     | –               |
-| Warrior   | Melee    | 1      | Trained, 30 prod            | 8        | –              | 4     | –               |
-| Slinger   | Ranged   | 1      | Trained, 35 prod            | 5        | 7 (3)          | 4     | Hunting         |
-| Chariot   | Mounted  | 1      | Trained, 55 prod (Town+)    | 12       | –              | 8     | Wheel, Horses   |
-| Spearman  | Melee    | –      | Upgrade from Warrior, 40 g  | 11       | –              | 4     | Bronze, Copper  |
-| Bowman    | Ranged   | –      | Upgrade from Slinger, 30 g  | 7        | 10 (4)         | 4     | Archery         |
-| Swordsman | Melee    | –      | Upgrade from Spearman, 50 g | 15       | –              | 4     | Ironworking     |
+| Unit      | Class    | People   | Obtained                    | Strength | Ranged (range) | Moves | Requires        |
+|-----------|----------|----------|-----------------------------|----------|----------------|-------|-----------------|
+| Migrants  | Civilian | 1–2      | Trained, 20 prod            | –        | –              | 4     | –               |
+| Scout     | Recon    | 1        | Trained, 20 prod            | 4        | –              | 6     | –               |
+| Warrior   | Melee    | 1        | Trained, 30 prod            | 8        | –              | 4     | –               |
+| Slinger   | Ranged   | 1        | Trained, 35 prod            | 5        | 7 (3)          | 4     | Hunting         |
+| Chariot   | Mounted  | 1        | Trained, 55 prod (Town+)    | 12       | –              | 8     | Wheel, Horses   |
+| Spearman  | Melee    | 1 (kept) | Upgrade from Warrior, 40 g  | 11       | –              | 4     | Bronze, Copper  |
+| Bowman    | Ranged   | 1 (kept) | Upgrade from Slinger, 30 g  | 7        | 10 (4)         | 4     | Archery         |
+| Swordsman | Melee    | 1 (kept) | Upgrade from Spearman, 50 g | 15       | –              | 4     | Ironworking     |
 
-Spearmen get +50% strength against Chariots. Spearmen, Bowmen and Swordsmen cannot be trained;
-they exist only as upgraded veterans (§9.7).
+Spearmen get +50% strength against Chariots.
+
+Two upgrade lines, read left to right; each step needs a Seasoned-or-better unit (§9.7):
+
+```
+Warrior ──▶ Spearman ──▶ Swordsman
+Slinger ──▶ Bowman
+```
+
+Only the first unit of each line is trained. A Spearman is the middle step: it is made by
+upgrading a Warrior and can itself be upgraded to a Swordsman. An upgraded unit keeps its person.
 
 ### 9.3 Recruitment and upkeep
 
@@ -703,6 +712,13 @@ Not committed:
 - **Canals**: extend fresh water inland; make new land attractive to migrants.
 - **Migrant identity**: people keep an origin identity until integrated; a majority-foreign
   settlement can defect.
+- **Draft**: an action to train a unit when the recruit pool is empty by conscripting a working
+  person. Candidate penalties: stability loss per drafted unit, attractiveness drop in that
+  settlement (people emigrate), drafted units start below Recruit strength, and the pool's
+  refill pauses.
+- **Leader abilities**: each civilization's leader has one ability that bends a rule. First
+  candidate: prisoners can be enlisted straight into the recruit pool of their holding
+  settlement, instead of waiting 10 turns to settle.
 
 ## Appendix A. Lineage
 
@@ -774,7 +790,7 @@ it takes in changed form, and what it leaves out.
 - Specialists and tile purchase with gold
 - Puppet, annex and raze choices on capture
 - Diplomatic deals, denunciation, friendship and research agreements
-- Unique civilization abilities, units and buildings
+- Unique civilization units and buildings (leader abilities are in the backlog, §21)
 - Eras beyond the Iron Age
 - Multiple map types and sizes; map wrap
 - Hotseat and multiplayer
