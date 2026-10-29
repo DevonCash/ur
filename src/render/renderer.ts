@@ -46,6 +46,9 @@ export class MapRenderer {
   private settlements = new Container();
   private units = new Container();
   private fog = new Graphics();
+  /** above fog: hex grid, then cursor/selection/path markers */
+  private grid = new Graphics();
+  private cursor = new Graphics();
   private labels: Text[] = [];
   private unitTexts: Text[] = [];
   private builtFor: string | null = null;
@@ -66,7 +69,7 @@ export class MapRenderer {
     });
     this.viewport.drag({ mouseButtons: 'left' }).pinch().wheel({ smooth: 4 }).decelerate().clampZoom({ minScale: 0.35, maxScale: 2.5 });
     this.app.stage.addChild(this.viewport);
-    for (const layer of [this.terrain, this.rivers, this.land, this.resources, this.borders, this.overlay, this.settlements, this.units, this.fog]) {
+    for (const layer of [this.terrain, this.rivers, this.land, this.resources, this.borders, this.overlay, this.settlements, this.units, this.fog, this.grid, this.cursor]) {
       this.viewport.addChild(layer);
     }
     window.addEventListener('resize', () => this.viewport.resize(host.clientWidth, host.clientHeight));
@@ -139,6 +142,8 @@ export class MapRenderer {
         }
       }
     }
+    this.grid.clear();
+    for (let i = 0; i < s.tiles.length; i++) this.grid.poly(this.hexPoly(s, i)).stroke({ width: 1, color: 0xffffff, alpha: 0.07 });
     for (let i = 0; i < s.tiles.length; i++) {
       const t = s.tiles[i];
       if (!t.resource) continue;
@@ -308,6 +313,8 @@ export class MapRenderer {
   drawOverlay(s: GameState, o: Overlay) {
     const g = this.overlay;
     g.clear();
+    const c = this.cursor;
+    c.clear();
     if (o.selectedSettlement !== null) {
       const st = settlementById(s, o.selectedSettlement);
       if (st) {
@@ -324,7 +331,7 @@ export class MapRenderer {
     if (o.selectedUnit !== null) {
       const u = unitById(s, o.selectedUnit);
       if (u && u.civId === 0) {
-        g.poly(this.hexPoly(s, u.tile, 1)).stroke({ width: 2.5, color: 0xffffff });
+        c.poly(this.hexPoly(s, u.tile, 1)).stroke({ width: 2.5, color: 0xffffff });
         if (u.moves > 0) {
           const reach = dijkstra(s, [u.tile], { maxCost: u.moves, canEnter: (t) => canPass(s, u, t) });
           for (const [i] of reach) if (i !== u.tile) g.poly(this.hexPoly(s, i, 2)).fill({ color: 0xffffff, alpha: 0.12 });
@@ -337,17 +344,17 @@ export class MapRenderer {
           if (p) {
             let prev = tileCenter(s.w, p.path[0], HEX);
             for (let k = 1; k < p.path.length; k++) {
-              const c = tileCenter(s.w, p.path[k], HEX);
-              g.moveTo(prev[0], prev[1]).lineTo(c[0], c[1]).stroke({ width: 3, color: 0xffffff, alpha: 0.85 });
-              prev = c;
+              const next = tileCenter(s.w, p.path[k], HEX);
+              c.moveTo(prev[0], prev[1]).lineTo(next[0], next[1]).stroke({ width: 3, color: 0xffffff, alpha: 0.85 });
+              prev = next;
             }
-            g.circle(prev[0], prev[1], 5).fill(0xffffff);
+            c.circle(prev[0], prev[1], 5).fill(0xffffff);
           }
         }
       }
     }
     if (o.hoverTile !== null && o.hoverTile >= 0) {
-      g.poly(this.hexPoly(s, o.hoverTile, 1)).stroke({ width: 2, color: o.projectMode ? 0xffe066 : 0xffffff, alpha: 0.9 });
+      c.poly(this.hexPoly(s, o.hoverTile, 1)).stroke({ width: 2, color: o.projectMode ? 0xffe066 : 0xffffff, alpha: 0.9 });
     }
   }
 }
