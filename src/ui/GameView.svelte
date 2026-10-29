@@ -184,6 +184,8 @@
       refresh();
     } else if (k === 'enter' && (e.shiftKey || e.metaKey || e.ctrlKey)) endTurn();
     else if (k === 'e' && !ui.screen) endTurn();
+    else if (k === '+' || k === '=') renderer.zoomCentre(1.25);
+    else if (k === '-' || k === '_') renderer.zoomCentre(0.8);
     else if (k === 'n' || k === 'tab') {
       e.preventDefault();
       selectNextUnit();
@@ -223,6 +225,10 @@
     {/if}
   </aside>
   <TileTooltip />
+  <div class="zoom panel">
+    <button aria-label="Zoom in" title="Zoom in (+)" onclick={() => renderer.zoomCentre(1.25)}>+</button>
+    <button aria-label="Zoom out" title="Zoom out (−)" onclick={() => renderer.zoomCentre(0.8)}>−</button>
+  </div>
   {#if ui.projectMode}
     {@const pm = ui.projectMode}
     <div class="banner panel row">
@@ -266,6 +272,21 @@
   .side :global(> *) {
     pointer-events: auto;
   }
+  .zoom {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px;
+  }
+  .zoom button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 18px;
+  }
   .banner,
   .toast {
     position: absolute;
@@ -281,6 +302,11 @@
     bottom: 20px;
   }
   @media (max-width: 640px) {
+    .zoom {
+      top: 140px;
+      bottom: auto;
+      right: 16px;
+    }
     .side {
       top: auto;
       bottom: 8px;

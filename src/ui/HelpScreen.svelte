@@ -5,7 +5,7 @@
 <Modal title="How to play">
   <h3>Controls</h3>
   <ul>
-    <li>Drag to pan, wheel or pinch to zoom.</li>
+    <li>Drag or two-finger scroll to pan. Pinch, mouse wheel, <b>+</b>/<b>−</b> or the corner buttons to zoom.</li>
     <li>Click a unit or settlement to select it. With a unit selected, click (or right-click) a tile to move or attack.</li>
     <li>With a settlement selected, click a territory tile to lock it as worked; click an enemy in range to shoot (Town+ with Walls).</li>
     <li>Keys: <b>E</b> end turn · <b>N</b> next unit · <b>F</b> fortify · <b>S</b> sleep · <b>Space</b> skip · <b>B</b> found camp · <b>Esc</b> deselect.</li>

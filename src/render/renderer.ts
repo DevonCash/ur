@@ -10,6 +10,8 @@ import { canPass, pathFor } from '../core/units';
 import { dijkstra, grid, isMilitary, settlementById, unitById } from '../core/world';
 
 export const HEX = 22;
+const MIN_ZOOM = 0.35;
+const MAX_ZOOM = 2.5;
 
 const TERRAIN_COLOR: Record<string, number> = {
   grassland: 0x8fbf5c,
@@ -69,12 +71,72 @@ export class MapRenderer {
       screenHeight: host.clientHeight,
       events: this.app.renderer.events,
     });
-    this.viewport.drag({ mouseButtons: 'left' }).pinch().wheel({ smooth: 4 }).decelerate().clampZoom({ minScale: 0.35, maxScale: 2.5 });
+    this.viewport.drag({ mouseButtons: 'left' }).pinch().decelerate().clampZoom({ minScale: MIN_ZOOM, maxScale: MAX_ZOOM });
+    this.installWheel(host);
     this.app.stage.addChild(this.viewport);
     for (const layer of [this.terrain, this.rivers, this.land, this.resources, this.borders, this.overlay, this.settlements, this.units, this.fog, this.grid, this.cursor]) {
       this.viewport.addChild(layer);
     }
     window.addEventListener('resize', () => this.viewport.resize(host.clientWidth, host.clientHeight));
+  }
+
+  /**
+   * Trackpad-aware wheel handling. Pinch (wheel + ctrlKey) zooms around the cursor; two-finger
+   * scroll pans; a mouse wheel (line mode or large integer steps with no horizontal part) zooms.
+   * Always prevents default so the page itself never zooms.
+   */
+  private installWheel(host: HTMLElement) {
+    host.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        const r = host.getBoundingClientRect();
+        const x = e.clientX - r.left;
+        const y = e.clientY - r.top;
+        const lines = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+        const dx = e.deltaX * lines;
+        const dy = e.deltaY * lines;
+        const mouseWheel = e.deltaMode !== 0 || (dx === 0 && Math.abs(dy) >= 40 && Number.isInteger(dy));
+        if (e.ctrlKey) this.zoomAt(x, y, Math.exp(-dy * 0.01));
+        else if (mouseWheel) this.zoomAt(x, y, Math.exp(-dy * 0.0015));
+        else this.panBy(-dx, -dy);
+      },
+      { passive: false },
+    );
+    // Safari reports trackpad pinch as gesture events
+    let lastScale = 1;
+    const gesture = (e: Event & { scale?: number; clientX?: number; clientY?: number }) => {
+      e.preventDefault();
+      if (e.type === 'gesturestart') lastScale = 1;
+      const scale = e.scale ?? 1;
+      const r = host.getBoundingClientRect();
+      this.zoomAt((e.clientX ?? r.width / 2) - r.left, (e.clientY ?? r.height / 2) - r.top, scale / lastScale);
+      lastScale = scale;
+    };
+    for (const t of ['gesturestart', 'gesturechange', 'gestureend']) host.addEventListener(t, gesture as EventListener, { passive: false });
+  }
+
+  /** Zoom by `factor` keeping the world point under screen (x, y) fixed. */
+  zoomAt(x: number, y: number, factor: number) {
+    const vp = this.viewport;
+    const before = vp.toWorld(x, y);
+    const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, vp.scale.x * factor));
+    vp.scale.set(scale);
+    const after = vp.toWorld(x, y);
+    vp.x += (after.x - before.x) * scale;
+    vp.y += (after.y - before.y) * scale;
+    vp.emit('zoomed', { viewport: vp, type: 'wheel' });
+  }
+
+  /** Zoom around the centre of the screen (buttons, keyboard). */
+  zoomCentre(factor: number) {
+    this.zoomAt(this.viewport.screenWidth / 2, this.viewport.screenHeight / 2, factor);
+  }
+
+  panBy(dx: number, dy: number) {
+    this.viewport.x += dx;
+    this.viewport.y += dy;
+    this.viewport.emit('moved', { viewport: this.viewport, type: 'wheel' });
   }
 
   tileAt(s: GameState, screenX: number, screenY: number): number {
