@@ -38,13 +38,16 @@ whichever places offer the better life. A settlement's size and status depend on
 Turns are sequential: the human player, then each AI in a fixed order. A turn resolves in this order:
 
 1. **Start of turn (per civilization)**
-   1. Each settlement collects yields from its worked tiles and buildings.
-   2. Food: surplus is added to the settlement's food store; growth or starvation is applied.
-   3. Production: added to the current item; completed items appear; overflow carries over.
-   4. Science, gold and culture are added to the civilization's totals. Completed research applies.
+   1. Siege status is checked for each settlement (§7.10).
+   2. Each settlement collects yields from its worked tiles and buildings.
+   3. Food: unit upkeep and prisoners are fed; hinterland deliveries are made (§7.11); surplus is
+      added to the settlement's food store; growth or starvation is applied.
+   4. Production: added to the current item; completed items appear; overflow carries over.
+   5. Science, gold and culture are added to the civilization's totals. Completed research applies.
       Culture claims border tiles (§7.7).
-   5. Tier counters advance; tier changes apply (§7.3).
-   6. Units heal (§9.6). Auto-development counters advance (§8.2). Auto-roads extend (§8.4).
+   6. Tier counters advance; tier changes apply (§7.3).
+   7. Units heal (§9.6). Recruit pools refill (§9.3). Auto-development counters advance (§8.2).
+      Auto-roads extend (§8.4).
 2. **Player phase**: move units, attack, set production and projects, assign tiles, choose
    research, set migration and border policy, make diplomatic moves.
 3. **End of round** (after every civilization has played): migration drift resolves (§10.3),
@@ -222,7 +225,7 @@ recent ones go dormant (no effect, no upkeep) until slots return.
 |-----------|------|--------|--------------|-----------------------------------------------------|
 | Shrine    | 40   | 1      | –            | +1 culture, +2 stability                            |
 | Granary   | 50   | 1      | Pottery      | +2 food; 25% of food store kept on growth           |
-| Barracks  | 60   | 1      | Bronze       | Units trained here get +10% strength                |
+| Barracks  | 60   | 1      | Bronze       | Units trained here start Seasoned; recruit pool refills 2 turns faster; units fortified here gain 1 XP per turn |
 | Walls     | 60   | 1      | Masonry      | +100 settlement HP, +6 defence; Town+ ranged attack |
 | Workshop  | 70   | 1      | Stoneworking | +2 production, +15% production                      |
 | Library   | 70   | 1      | Writing      | +2 science, +25% science from this settlement       |
@@ -234,11 +237,35 @@ recent ones go dormant (no effect, no upkeep) until slots return.
 - Settlement HP: 200 (+100 with Walls). Defence strength: `8 + 2·population` (+6 with Walls).
 - Towns and Cities with Walls make one ranged attack per turn: strength equal to their defence,
   range 2.
-- A settlement heals 20 HP per turn.
+- A settlement heals 20 HP per turn unless besieged.
 - A settlement at 0 HP is captured when an enemy melee unit moves in. Ranged attacks cannot reduce
   a settlement below 1 HP.
-- On capture: 25% of its people (rounded down) flee as refugees (§10.4), it drops one tier
-  (Camps are destroyed instead), and each building has a 50% chance to be destroyed.
+- On capture: military units inside become prisoners of the captor (§9.8), 25% of its people
+  (rounded down) flee as refugees (§10.4), it drops one tier (Camps are destroyed instead), and
+  each building has a 50% chance to be destroyed.
+
+**Siege.** A settlement is **besieged** when, at the start of its owner's turn, every land tile
+adjacent to its footprint holds an enemy military unit or is adjacent to one (encircled by zone of
+control). While besieged:
+
+- It works only its footprint tiles. Its food deficit drains the food store; once the store is
+  empty it loses 1 person per turn to starvation (every 2 turns with a Granary).
+- It does not heal, its recruit pool does not refill, and hinterland deliveries to and from it
+  stop. Its units outside the siege go unfed (§9.3).
+- Each round it loses 1 person to refugees with 50% chance (§10.4).
+- When its food store is empty and it has 2 or fewer people, it **surrenders** to the besieging
+  civilization with the most adjacent units, and is captured as if assaulted.
+
+Besiegers choose between assaulting (paying in casualties) and waiting (paying in time while the
+defenders' people starve or flee).
+
+### 7.11 Hinterland
+
+Each Camp and Village is attached to the nearest own Town or City within 12 travel, its **hub**.
+Each turn it sends half its food surplus (rounded down) to its hub's food store, provided a path
+of 12 travel or less exists with no enemy military unit on it. Camps and Villages without a hub
+keep everything. Cities grow on their hinterland, and raiding or cutting off the villages around a
+city starves it. The settlement screen shows a hub's attached settlements and what each delivers.
 
 ## 8. Land improvement
 
@@ -298,18 +325,19 @@ working and the unit gains 10 gold. Repair is a project.
 
 ### 9.2 Roster
 
-| Unit      | Class    | People | Prod | Strength | Ranged (range) | Moves | Requires        |
-|-----------|----------|--------|------|----------|----------------|-------|-----------------|
-| Migrants  | Civilian | 1–2    | 20   | –        | –              | 4     | –               |
-| Scout     | Recon    | 1      | 20   | 4        | –              | 6     | –               |
-| Warrior   | Melee    | 1      | 30   | 8        | –              | 4     | –               |
-| Slinger   | Ranged   | 1      | 35   | 5        | 7 (3)          | 4     | Hunting         |
-| Spearman  | Melee    | 1      | 50   | 11       | –              | 4     | Bronze, Copper  |
-| Bowman    | Ranged   | 1      | 50   | 7        | 10 (4)         | 4     | Archery         |
-| Chariot   | Mounted  | 1      | 55   | 12       | –              | 8     | Wheel, Horses   |
-| Swordsman | Melee    | 1      | 75   | 15       | –              | 4     | Ironworking     |
+| Unit      | Class    | People | Obtained                    | Strength | Ranged (range) | Moves | Requires        |
+|-----------|----------|--------|-----------------------------|----------|----------------|-------|-----------------|
+| Migrants  | Civilian | 1–2    | Trained, 20 prod            | –        | –              | 4     | –               |
+| Scout     | Recon    | 1      | Trained, 20 prod            | 4        | –              | 6     | –               |
+| Warrior   | Melee    | 1      | Trained, 30 prod            | 8        | –              | 4     | –               |
+| Slinger   | Ranged   | 1      | Trained, 35 prod            | 5        | 7 (3)          | 4     | Hunting         |
+| Chariot   | Mounted  | 1      | Trained, 55 prod (Town+)    | 12       | –              | 8     | Wheel, Horses   |
+| Spearman  | Melee    | –      | Upgrade from Warrior, 40 g  | 11       | –              | 4     | Bronze, Copper  |
+| Bowman    | Ranged   | –      | Upgrade from Slinger, 30 g  | 7        | 10 (4)         | 4     | Archery         |
+| Swordsman | Melee    | –      | Upgrade from Spearman, 50 g | 15       | –              | 4     | Ironworking     |
 
-Spearmen get +50% strength against Chariots.
+Spearmen get +50% strength against Chariots. Spearmen, Bowmen and Swordsmen cannot be trained;
+they exist only as upgraded veterans (§9.7).
 
 ### 9.3 Recruitment and upkeep
 
@@ -318,10 +346,22 @@ Every unit is made of people.
 - Training a military unit or Scout takes **1 person** from the settlement when the unit is
   complete, in addition to its production cost. A settlement needs at least 2 people to train a
   unit; it cannot empty itself.
+- It also takes **1 recruit** from the settlement's **recruit pool**: the people willing to take
+  up arms. Pools cap and refill by tier, and do not refill while stability is negative or the
+  settlement is besieged:
+
+  | Tier    | Pool cap | Refills 1 every |
+  |---------|----------|-----------------|
+  | Camp    | 1        | 10 turns        |
+  | Village | 2        | 8 turns         |
+  | Town    | 3        | 6 turns         |
+  | City    | 4        | 4 turns         |
+
+  Pools start full. A Barracks refills 2 turns faster. Migrants do not use the pool.
 - The settlement becomes the unit's **home**. Each unit costs its home **2 food per turn**
   (soldiers partly forage). If the home's food store is empty and it cannot pay, the unit loses
   10 HP per turn.
-- A unit that dies loses its person.
+- A unit that dies loses its person. A unit destroyed by melee becomes a prisoner instead (§9.8).
 - **Disbanding** a unit inside own territory returns its person to the nearest own settlement
   within 6 travel; elsewhere the person is lost.
 - A unit can **rehome** to another own settlement it stands in.
@@ -329,7 +369,7 @@ Every unit is made of people.
 ### 9.4 Actions
 
 Move, attack, fortify (+25% defence from the next turn until it moves), sleep, skip, pillage,
-disband, rehome.
+disband, rehome, upgrade.
 Migrants: found camp, join settlement.
 
 ### 9.5 Combat
@@ -337,22 +377,59 @@ Migrants: found camp, join settlement.
 - Units have **100 HP**.
 - Effective strength = base × (1 + sum of modifiers) × `(0.5 + 0.5·HP/100)`.
 - Modifiers: terrain defence (§5.2), fortified +25%, attacking across a river −20%, flanking +10%
-  per other friendly military unit adjacent to the defender (max +30%), Barracks +10%, Spearman
+  per other friendly military unit adjacent to the defender (max +30%), rank (§9.7), Spearman
   vs Chariot +50%.
 - With ratio `r = attacker / defender`:
   - Damage to defender: `30 · r^1.2 · rand(0.8, 1.2)`
   - Damage to attacker (melee only): `30 · r^−1.2 · rand(0.8, 1.2)`
   - Each clamped to [1, 100].
-- **Melee**: both sides take damage; if the defender dies the attacker moves into its tile.
-  Attacking uses all remaining moves.
-- **Ranged**: only the defender takes damage; needs the target within range and in sight.
-- A military unit entering a tile holding only an enemy civilian captures it.
+- **Melee**: both sides take damage; if the defender dies it is taken prisoner (§9.8) and the
+  attacker moves into its tile. Attacking uses all remaining moves.
+- **Ranged**: only the defender takes damage; needs the target within range and in sight. A unit
+  killed by ranged attack is dead.
+- A military unit entering a tile holding only enemy Migrants takes their people prisoner.
 - The UI shows a combat preview (expected damage both ways) before the attack is confirmed.
 
 ### 9.6 Healing
 
 A unit that neither moved nor attacked heals: +10 HP in neutral or enemy land, +15 in own
 territory, +25 in an own settlement.
+
+### 9.7 Experience and upgrades
+
+- A unit gains **5 XP** for each combat it survives (attacking or defending) and 5 more for
+  destroying the enemy unit.
+- Ranks give a strength bonus:
+
+  | Rank     | XP  | Strength |
+  |----------|-----|----------|
+  | Recruit  | 0   | +0%      |
+  | Seasoned | 15  | +10%     |
+  | Veteran  | 40  | +20%     |
+  | Elite    | 80  | +30%     |
+
+- A Seasoned-or-better unit in own territory can **upgrade** to the next unit in its line
+  (Warrior → Spearman → Swordsman; Slinger → Bowman) by paying the gold cost in §9.2, if the
+  civilization has the tech and resource. Upgrading uses the unit's turn and keeps its XP.
+- Advanced units exist only through upgrades, so a veteran company is irreplaceable in the short
+  term and losing one costs more than a person.
+
+### 9.8 Prisoners
+
+- A military unit destroyed by melee, a garrison in a captured settlement, and captured Migrants
+  become **prisoners** of the captor: one per person. Each is held in the captor's settlement
+  nearest to where it was taken.
+- Prisoners work no tiles and eat 2 food per turn from their holding settlement. They do not count
+  toward score or stability.
+- For each prisoner the captor can:
+  - **Ransom**: offer it to its civilization for 30 gold (+10 per rank above Recruit). If accepted,
+    the person returns to its civilization's settlement nearest the holding settlement.
+  - **Release**: return the person home for nothing.
+  - **Settle**: after 10 turns in captivity, the prisoner joins the holding settlement's
+    population.
+- If the holding settlement is captured by, or surrenders to, the prisoner's own civilization, its
+  prisoners go free and rejoin that civilization.
+- When peace is made, all prisoners not yet settled are exchanged.
 
 ## 10. Migration
 
@@ -372,7 +449,7 @@ attractiveness = 2 × (food surplus per person)
                + 1 per active building
                − 2 × max(0, population − next tier threshold)   (crowding)
                − 5 if an enemy military unit is within 3 tiles
-               − 10 if besieged (enemy military adjacent for 2+ turns)
+               − 10 if besieged (§7.10)
 ```
 
 ### 10.3 Drift
@@ -407,9 +484,10 @@ with open borders; otherwise they are lost. A besieged settlement loses 1 person
 
 ### 11.1 Gold
 
-Income from urban tiles, worked coast, lake and luxury tiles, Markets and pillaging. Expenses are
-building upkeep (§7.9). Units are paid for in people and food, not gold (§9.3). If the treasury is empty and income is negative,
-every settlement's production is reduced by 25% until it recovers.
+Income from urban tiles, worked coast, lake and luxury tiles, Markets, pillaging and ransoms. Expenses are
+building upkeep (§7.9). Units are paid for in people and food, not gold (§9.3). If the treasury
+is empty and income is negative, every settlement's production is reduced by 25% until it
+recovers.
 
 ### 11.2 Stability
 
@@ -444,6 +522,7 @@ The top bar shows stability with a tooltip listing every term.
   settlement changing hands. War score = units destroyed + 5 × settlements captured, minus the
   same for the opponent.
 - Border policy (open/closed) is set separately and governs migration only (§10.3).
+- Making peace exchanges all unsettled prisoners (§9.8). Ransom offers can be made at any time.
 
 ## 13. Technology
 
@@ -457,15 +536,15 @@ knowing Foraging.
 | Herding      | 20   | Foraging              | Pasture                                         |
 | Tilling      | 20   | Foraging              | Farm                                            |
 | Stoneworking | 20   | –                     | Mine, Lumber Camp, Workshop                     |
-| Archery      | 45   | Hunting               | Bowman                                          |
+| Archery      | 45   | Hunting               | Bowman (upgrade)                                |
 | Wheel        | 45   | Herding               | Chariot, roads, auto-roads                      |
 | Irrigation   | 45   | Tilling               | +1 food on Farms with fresh water               |
 | Pottery      | 45   | Tilling               | Granary                                         |
 | Masonry      | 45   | Stoneworking          | Walls                                           |
-| Bronze       | 80   | Masonry               | Spearman, Barracks                              |
+| Bronze       | 80   | Masonry               | Spearman (upgrade), Barracks                    |
 | Writing      | 80   | Pottery               | Library                                         |
 | Mathematics  | 130  | Writing               | Market; Ziggurat (with Masonry)                 |
-| Ironworking  | 130  | Bronze                | Swordsman                                       |
+| Ironworking  | 130  | Bronze                | Swordsman (upgrade)                             |
 
 ## 14. Players and AI
 
@@ -481,6 +560,11 @@ knowing Foraging.
   - **Defend**: garrison settlements with enemy units within 5 tiles.
   - **Attack**: declare war on the weakest neighbour when its military strength ratio is above 1.5.
   - **Policy**: close borders to a neighbour when net outflow to it exceeds 1 person per 5 turns.
+  - **Upgrade**: upgrade the highest-XP eligible unit whenever gold allows.
+  - **Siege**: encircle an enemy settlement when it has enough units nearby; assault when the
+    settlement is at 0 HP or the expected losses are under 2 units, otherwise wait.
+  - **Prisoners**: settle prisoners when the holding settlement can feed them; otherwise ransom.
+    Accept ransom offers when affordable.
 - The AI uses the same rules and sees only what its units and settlements see. Difficulty may
   apply a yield multiplier; no other bonuses.
 
@@ -508,6 +592,10 @@ score = 4 × people (settlements and units)
 - Project targeting: pick a project, then a tile on the map (valid tiles highlighted).
 - Migration log and a map overlay of net flows between settlements.
 - Diplomacy panel: war/peace and border policy per known civilization.
+- Prisoner panel: held prisoners, turns until they can settle, ransom/release/settle actions;
+  incoming ransom offers.
+- Unit panel shows rank and XP; settlement panel shows recruit pool and siege status.
+- Map shows hinterland links and encirclement around besieged settlements.
 - Tech tree screen.
 - Hover tooltips on everything that has a number.
 - Unit action bar: the actions in §9.4.
@@ -618,10 +706,14 @@ Not committed:
 
 ## Appendix A. Lineage
 
-Ur belongs to the 4X strategy genre and takes Civilization V as its main reference. This appendix
-records exactly what Ur takes, what it takes in changed form, and what it leaves out.
+Ur belongs to the 4X strategy genre. Its two references are Civilization V (map, settlements,
+technology, tactical combat) and Mount & Blade II: Bannerlord (soldiers as recruited people,
+prisoners, sieges, village economies). This appendix records exactly what Ur takes from each, what
+it takes in changed form, and what it leaves out.
 
-### Taken
+### Civilization V
+
+#### Taken
 
 - Turn-based play on a hex map; human player then AI players each turn.
 - Tile yields from terrain, feature, improvement and resource; the five yields food, production,
@@ -647,7 +739,7 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 - Conquest victory by capitals; score victory at a turn limit.
 - AI bound by the same rules.
 
-### Taken in changed form
+#### Taken in changed form
 
 | Civilization V                      | Ur                                                                        |
 |-------------------------------------|---------------------------------------------------------------------------|
@@ -662,8 +754,9 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 | River crossing ends movement        | River crossing costs +1 travel; fords and roads cross freely              |
 | Tiles at continental scale          | ~1.5 km tiles; units are companies; regional maps                         |
 | Tech tree across all eras           | 14 techs, Bronze to Iron Age, original names                              |
+| Experience, chosen promotions, upgrades for gold | Fixed rank bonuses; upgrades for gold; advanced units exist only by upgrade |
 
-### Left out
+#### Left out
 
 - Social policies, ideologies, and culture/tourism victory
 - Religion, faith and pantheons
@@ -676,7 +769,7 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 - Espionage
 - World Congress and diplomatic victory
 - Science victory
-- Unit experience, promotions and upgrades
+- Promotion choices (perks)
 - Golden ages
 - Specialists and tile purchase with gold
 - Puppet, annex and raze choices on capture
@@ -685,3 +778,34 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 - Eras beyond the Iron Age
 - Multiple map types and sizes; map wrap
 - Hotseat and multiplayer
+
+### Mount & Blade II: Bannerlord
+
+#### Taken
+
+- Soldiers are recruited people drawn from settlements, from limited pools that refill over time.
+- Troop upgrade lines: advanced soldiers come only from upgrading experienced ones.
+- Prisoners taken in battle, then ransomed, released or absorbed.
+- Sieges in which an encircled settlement's food runs down until it falls or surrenders.
+- Villages supplying their town, so raiding the countryside weakens the city.
+
+#### Taken in changed form
+
+| Bannerlord                                         | Ur                                                                   |
+|----------------------------------------------------|----------------------------------------------------------------------|
+| Recruits offered by village and town notables, gated by relations | One pool per settlement, sized by tier, stalled by negative stability |
+| Hundreds of individual troops in a party           | Each map unit is one company and one person; no rosters              |
+| Prisoners recruited through a party's prison roster | Prisoners held in a settlement, settled as population after 10 turns |
+| Sieges with siege engines and a real-time assault  | Encirclement by zone of control; assault through normal combat       |
+| Villages produce goods sold in towns               | Camps and Villages send half their food surplus to a hub             |
+
+#### Left out
+
+- Parties as variable-size troop rosters
+- Lords, clans, fiefs and kingdom politics
+- Playing as a character; companions, renown and influence
+- Real-time battles and siege engines
+- Trade goods, caravans and workshops
+- Equipment and smithing
+- Marriage, tournaments and quests
+- Bandits

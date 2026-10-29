@@ -25,6 +25,7 @@ Check items off as they land.
 ## M2 Units & movement (§9.1, §5.6)
 - [ ] Unit model, stacking rules (1 military + 1 civilian)
 - [ ] Units cost a person; home settlement, food upkeep, disband/rehome (§9.3)
+- [ ] Recruit pools: cap, refill by tier (§9.3)
 - [ ] Garrison counts toward tier thresholds (§7.3)
 - [ ] Pathfinding with travel costs, river crossings, fords, ZOC
 - [ ] Select/move UI with path preview
@@ -41,6 +42,7 @@ Check items off as they land.
 - [ ] Territory from reach + culture claims (§7.7)
 - [ ] Production, overflow, rush-buy (§7.8)
 - [ ] Buildings, slots, dormancy on downgrade (§7.9)
+- [ ] Hinterland: hub attachment, food deliveries, cut by enemy units (§7.11)
 - [ ] Settlement screen
 
 ## M4 Tech & improvements (§8, §11, §13)
@@ -55,13 +57,16 @@ Check items off as they land.
 - [ ] Gold income, building upkeep, bankruptcy penalty
 - [ ] Stability formula + bands, top-bar tooltip
 
-## M5 Combat & diplomacy (§9.5–9.6, §7.10, §12)
+## M5 Combat & diplomacy (§9.5–9.8, §7.10, §12)
 - [ ] Effective strength, modifiers, damage formula
 - [ ] Melee and ranged attacks; civilian capture
 - [ ] Combat preview tooltip
 - [ ] Fortify, healing
 - [ ] Pillage
 - [ ] Settlement HP, walls, ranged attack, capture consequences
+- [ ] Siege: encirclement check, starvation, surrender (§7.10)
+- [ ] XP, ranks, upgrade lines (§9.7)
+- [ ] Prisoners: capture, holding, ransom/release/settle, peace exchange (§9.8)
 - [ ] War/peace states, territory entry rule, war score, diplomacy panel
 
 ## M6 AI (§14)
@@ -69,6 +74,7 @@ Check items off as they land.
 - [ ] Hold-for-tier rule; army-share target; production and research choices
 - [ ] Defend/attack behaviour
 - [ ] War/peace and border-policy decisions
+- [ ] Upgrades, siege behaviour, prisoner handling
 - [ ] Headless AI-vs-AI full game test
 
 ## M7 Migration (§10)
