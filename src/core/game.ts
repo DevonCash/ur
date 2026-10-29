@@ -3,7 +3,7 @@
 import { generateMap } from '../mapgen/mapgen';
 import { attack, captureCiviliansAt, settlementShoot, type CombatHooks } from './combat';
 import {
-  AUTO_DEV_TURNS, BUILDING, HINTERLAND_RANGE, MIN_SETTLEMENT_DISTANCE, PRISONER_SETTLE_TURNS, PROJECT,
+  AUTO_DEV_TURNS, BUILDING, FOOD_PER_PERSON, HINTERLAND_RANGE, PRISONER_FOOD, UNIT_FOOD, MIN_SETTLEMENT_DISTANCE, PRISONER_SETTLE_TURNS, PROJECT,
   RANKS, RUSH_GOLD_PER_PROD, TECH, TECH_ORDER, TIER_POOL_CAP, TIER_POOL_REFILL, TIER_POP, TIER_TURNS, TURN_LIMIT,
   UNIT, growthThreshold, rankOf, upgradeTarget,
   type ImprovementId, type ProjectKind, type TechId, type UnitType,
@@ -12,7 +12,7 @@ import { distance, neighbour } from './hex';
 import { resolveDrift, sendRefugees, stability, stabilityBand } from './migration';
 import { chance, nextInt, type RngState } from './rng';
 import {
-  activeBuildings, assignWorked, buildingAllowed, hasBuilding, maxHp, recomputeTerritory, setTier,
+  activeBuildings, assignWorked, buildingAllowed, fedSoldiers, hasBuilding, maxHp, recomputeTerritory, setTier,
   settlementYields, tierPopulation, unitsHomed,
 } from './settlement';
 import type { Civ, GameState, Emigration, ProductionItem, Settlement, Unit } from './types';
@@ -430,6 +430,47 @@ function hubFor(s: GameState, st: Settlement): Settlement | null {
   return best;
 }
 
+export interface FoodBreakdown {
+  gross: number;
+  people: number;
+  soldiers: number;
+  prisoners: number;
+  /** gross minus everyone fed */
+  net: number;
+  /** surplus lost to unrest (§11.3) */
+  unrest: number;
+  /** surplus sent to the hub (§7.11) */
+  toHub: number;
+  hub: Settlement | null;
+  /** what reaches this settlement's store */
+  toStore: number;
+  threshold: number;
+  /** turns until the next person, null if not growing */
+  turnsToGrow: number | null;
+}
+
+/** Where a settlement's food goes this turn (DESIGN §7.2, §7.11, §11.3). */
+export function foodBreakdown(s: GameState, st: Settlement, band = stabilityBand(stability(s, st.civId))): FoodBreakdown {
+  const y = settlementYields(s, st);
+  const people = st.pop * FOOD_PER_PERSON;
+  const soldiers = fedSoldiers(s, st) * UNIT_FOOD;
+  const prisoners = s.prisoners.filter((p) => p.settlementId === st.id).length * PRISONER_FOOD;
+  const net = y.food - people - soldiers - prisoners;
+  let surplus = net;
+  let unrest = 0;
+  if (surplus > 0 && band > 0) {
+    const kept = band === 1 ? Math.floor(surplus / 2) : 0;
+    unrest = surplus - kept;
+    surplus = kept;
+  }
+  const hub = surplus > 0 && !st.besieged ? hubFor(s, st) : null;
+  const toHub = hub ? Math.floor(surplus / 2) : 0;
+  const toStore = net > 0 ? surplus - toHub : net;
+  const threshold = growthThreshold(st.pop);
+  const turnsToGrow = toStore > 0 ? Math.max(1, Math.ceil((threshold - st.food) / toStore)) : null;
+  return { gross: y.food, people, soldiers, prisoners, net, unrest, toHub, hub, toStore, threshold, turnsToGrow };
+}
+
 function abandon(s: GameState, st: Settlement) {
   log(s, st.civId, 'settlement', `${st.name} was abandoned.`);
   destroySettlement(s, st);
@@ -459,18 +500,9 @@ export function startTurn(s: GameState, civId: number): void {
     const y = settlementYields(s, st);
     st.lastFoodNet = y.foodNet;
     // 3. food
-    let net = y.foodNet;
-    if (net > 0) {
-      if (band === 1) net = Math.floor(net / 2);
-      if (band === 2) net = 0;
-      const hub = hubFor(s, st);
-      if (hub && !st.besieged) {
-        const send = Math.floor(net / 2);
-        hub.food += send;
-        net -= send;
-      }
-    }
-    st.food += net;
+    const fb = foodBreakdown(s, st, band);
+    if (fb.hub && fb.toHub > 0) fb.hub.food += fb.toHub;
+    st.food += fb.toStore;
     if (st.food < 0) {
       st.food = 0;
       st.starveTimer += 1;

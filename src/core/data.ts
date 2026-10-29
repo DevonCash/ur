@@ -85,10 +85,10 @@ export const TIER_POOL_CAP = [1, 2, 3, 4];
 export const TIER_POOL_REFILL = [10, 8, 6, 4];
 export const TIER_TURNS = 8;
 export const MIN_SETTLEMENT_DISTANCE = 6;
-export const FOOD_PER_PERSON = 3;
+export const FOOD_PER_PERSON = 1;
 export const TILES_PER_PERSON = 2;
 export const UNIT_FOOD = 1;
-export const PRISONER_FOOD = 2;
+export const PRISONER_FOOD = 1;
 export const HINTERLAND_RANGE = 12;
 
 export function growthThreshold(pop: number): number {

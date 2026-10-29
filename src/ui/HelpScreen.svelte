@@ -13,10 +13,10 @@
   </ul>
   <h3>People are the resource</h3>
   <ul>
-    <li>Each person eats 3 food and works 2 tiles. Every unit takes a person and a recruit from its settlement, and eats 1 food there.</li>
+    <li>Each person eats 1 food and works 2 tiles. Every unit takes a person and a recruit from its settlement, and still eats 1 food there; so does each prisoner.</li>
     <li>Settlements become Village (3), Town (6) and City (10) by holding that many people for 8 turns. Garrisoned soldiers count.</li>
     <li>Reach follows travel cost: plains and roads reach far, hills and marsh less.</li>
-    <li>Projects (mines, roads…) take a person off the fields while they run. Worked flat land becomes farms on its own.</li>
+    <li>Projects (mines, roads…) cost production; their bonus adds to the tile when done. Worked flat land becomes farms on its own.</li>
     <li>People drift toward better-run settlements, across borders too. Close borders or restrict emigration to stop them — at a cost.</li>
     <li>Melee kills take prisoners: ransom, release, or settle them after 10 turns.</li>
     <li>Encircle an enemy settlement to besiege it: it works only urban tiles and starves.</li>

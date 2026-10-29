@@ -3,7 +3,7 @@
     BUILDING, BUILDING_ORDER, PROJECT, RUSH_GOLD_PER_PROD, TIER_NAMES, TIER_POOL_CAP, TIER_POP, TIER_SLOTS, TIER_TURNS,
     TRAINABLE, UNIT, growthThreshold, type ProjectKind,
   } from '../core/data';
-  import { itemCost, projectUnavailable, unitAllowed } from '../core/game';
+  import { foodBreakdown, itemCost, projectUnavailable, unitAllowed } from '../core/game';
   import { attractTerms } from '../core/migration';
   import {
     activeBuildings, buildingAllowed, garrison, maxHp, prisonersHeld, settlementYields, tierPopulation, unitsHomed,
@@ -45,6 +45,10 @@
       attract: a,
       attractTotal: Math.round((a.food + a.stability + a.amenities + a.crowding + a.safety) * 10) / 10,
       maxHp: maxHp(st),
+      food: (() => {
+        const f = foodBreakdown(s, st);
+        return { ...f, hub: f.hub ? { name: f.hub.name } : null };
+      })(),
       mine: st.civId === 0,
     };
   });
@@ -76,10 +80,20 @@
     <h3>People</h3>
     <dl>
       <dt>Population</dt><dd>{st.pop}{#if view.garrison}{' '}+ {view.garrison} garrison{/if}</dd>
-      <dt>Food</dt><dd>{st.food}/{view.growth} ({view.y.foodNet >= 0 ? '+' : ''}{view.y.foodNet}/turn)</dd>
-      <dt>Feeds</dt><dd>{st.pop} people · {view.homed} soldiers · {view.prisoners} prisoners</dd>
+      <dt>Food store</dt><dd>{st.food}/{view.food.threshold}{#if view.food.turnsToGrow}{' '}· grows in {view.food.turnsToGrow} turn{view.food.turnsToGrow === 1 ? '' : 's'}{/if}</dd>
       <dt>Recruits</dt><dd>{st.recruits}/{TIER_POOL_CAP[st.tier]}</dd>
     </dl>
+    <table class="food">
+      <tbody>
+        <tr><td>Food produced</td><td>{view.food.gross}</td></tr>
+        <tr><td>People ({st.pop})</td><td>−{view.food.people}</td></tr>
+        {#if view.food.soldiers}<tr><td>Soldiers ({view.homed})</td><td>−{view.food.soldiers}</td></tr>{/if}
+        {#if view.food.prisoners}<tr><td>Prisoners ({view.prisoners})</td><td>−{view.food.prisoners}</td></tr>{/if}
+        {#if view.food.unrest}<tr><td>Lost to unrest</td><td>−{view.food.unrest}</td></tr>{/if}
+        {#if view.food.toHub}<tr><td>Sent to {view.food.hub?.name}</td><td>−{view.food.toHub}</td></tr>{/if}
+        <tr class="total"><td>To store</td><td class:bad={view.food.toStore < 0}>{view.food.toStore >= 0 ? '+' : ''}{view.food.toStore}</td></tr>
+      </tbody>
+    </table>
     {#if view.next !== null}
       <div class="tier">
         <span>To {TIER_NAMES[st.tier + 1]}: hold {view.next} people ({view.tp} now) for {TIER_TURNS} turns</span>
@@ -110,7 +124,6 @@
           {/if}
           <button onclick={() => act({ type: 'setProduction', settlement: st.id, item: null })}>Clear</button>
         </div>
-        {#if st.production.kind === 'project'}<p class="muted small">A project takes 1 person off tile work as labour.</p>{/if}
       {:else}
         <p class="warn">Nothing in production.</p>
       {/if}
@@ -189,6 +202,22 @@
   }
   p {
     margin: 2px 0;
+  }
+  .food {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin: 6px 0;
+  }
+  .food td {
+    padding: 1px 0;
+  }
+  .food td:last-child {
+    text-align: right;
+  }
+  .food .total td {
+    border-top: 1px solid var(--border);
+    font-weight: 600;
   }
   .tier {
     margin-top: 6px;

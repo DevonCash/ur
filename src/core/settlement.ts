@@ -98,10 +98,6 @@ export function prisonersHeld(s: GameState, st: Settlement): number {
   return s.prisoners.filter((p) => p.settlementId === st.id).length;
 }
 
-export function labour(st: Settlement): number {
-  return st.production?.kind === 'project' ? 1 : 0;
-}
-
 export function activeBuildings(st: Settlement): BuildingId[] {
   return st.buildings.slice(0, TIER_SLOTS[st.tier]);
 }
@@ -114,9 +110,13 @@ export function maxHp(st: Settlement): number {
   return SETTLEMENT_HP + (hasBuilding(st, 'walls') ? WALLS_HP : 0);
 }
 
+/** Soldiers homed here that this settlement feeds (units outside a siege go unfed). */
+export function fedSoldiers(s: GameState, st: Settlement): number {
+  return unitsHomed(s, st).filter((u) => !st.besieged || st.footprint.includes(u.tile)).length;
+}
+
 export function upkeepFood(s: GameState, st: Settlement): number {
-  const fedUnits = unitsHomed(s, st).filter((u) => !st.besieged || st.footprint.includes(u.tile)).length;
-  return st.pop * FOOD_PER_PERSON + fedUnits * UNIT_FOOD + prisonersHeld(s, st) * PRISONER_FOOD;
+  return st.pop * FOOD_PER_PERSON + fedSoldiers(s, st) * UNIT_FOOD + prisonersHeld(s, st) * PRISONER_FOOD;
 }
 
 // Worked tiles ------------------------------------------------------------------------
@@ -136,7 +136,7 @@ export function workableTiles(s: GameState, st: Settlement): number[] {
 }
 
 export function workerSlots(st: Settlement): number {
-  return Math.max(0, (st.pop - labour(st)) * TILES_PER_PERSON);
+  return Math.max(0, st.pop * TILES_PER_PERSON);
 }
 
 /** Lock-first, then food until surplus ≥ 2/person, then balanced (DESIGN §7.6). */

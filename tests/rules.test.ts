@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { attack } from '../src/core/combat';
 import { TECH_ORDER, TIER_TURNS } from '../src/core/data';
-import { applyAction, hooks, needsOrders, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
+import { applyAction, foodBreakdown, hooks, needsOrders, newGame, projectTargets, startTurn, turnBlockers } from '../src/core/game';
 import { neighbour } from '../src/core/hex';
 import { resolveDrift } from '../src/core/migration';
-import { computeReach } from '../src/core/settlement';
+import { assignWorked, computeReach, settlementYields } from '../src/core/settlement';
 import { createUnit, pathFor, pathTurns, updateVision } from '../src/core/units';
 import { grid, relation } from '../src/core/world';
 import { cr, flatState, foundAt, offset } from './helpers';
@@ -308,5 +308,33 @@ describe('pathing through the fog (#4)', () => {
     expect(applyAction(s, { type: 'move', unit: u.id, to }).ok).toBe(true);
     for (let k = 0; k < 6 && u.tile !== to; k++) startTurn(s, 0);
     expect(u.tile).toBe(to);
+  });
+});
+
+describe('economy revision (#10, #11)', () => {
+  it('a project does not take people off tile work', () => {
+    const s = flatState();
+    const st = foundAt(s, 0, cr(s, 10, 10), 3);
+    s.civs[0].techs.push('stoneworking');
+    const hill = cr(s, 11, 11);
+    s.tiles[hill].feature = 'hills';
+    st.production = { kind: 'project', project: 'mine', tile: hill };
+    assignWorked(s, st);
+    expect(st.worked).toHaveLength(6);
+  });
+
+  it('each person, soldier and prisoner eats 1 food, and the breakdown adds up', () => {
+    const s = flatState();
+    const st = foundAt(s, 0, cr(s, 10, 10), 3);
+    createUnit(s, 0, 'warrior', st.center, st.id);
+    s.prisoners.push({ id: 999, civId: 1, holderCivId: 0, settlementId: st.id, turns: 0, rank: 0 });
+    assignWorked(s, st);
+    const f = foodBreakdown(s, st);
+    expect(f.people).toBe(3);
+    expect(f.soldiers).toBe(1);
+    expect(f.prisoners).toBe(1);
+    expect(f.net).toBe(f.gross - 5);
+    expect(f.toStore).toBe(f.net); // stable, no hub
+    expect(settlementYields(s, st).foodNet).toBe(f.net);
   });
 });

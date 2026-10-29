@@ -14,16 +14,15 @@ rival civilizations through expansion, the pull of a well-run society, and war. 
 one civilization holds every rival capital or when the turn limit is reached.
 
 The central resource is **people**, and the game is about how you allocate them. Population works
-the land, staffs construction projects, fills the ranks of every military unit, founds new
-settlements, and moves between settlements, including between civilizations, toward
+the land, fills the ranks of every military unit, founds new settlements, and moves between settlements, including between civilizations, toward
 whichever places offer the better life. A settlement's size and status depend on keeping people.
 
 ## 2. Pillars
 
 1. **Every turn has a meaningful decision, and the turn is short.** No busywork; automate what
    isn't a choice.
-2. **People are the scarce resource.** Growing a settlement, expanding to new land, improving
-   that land and fielding an army all draw on the same population.
+2. **People are the scarce resource.** Growing a settlement, expanding to new land and fielding
+   an army all draw on the same population.
 
 ## 3. Scale
 
@@ -143,7 +142,9 @@ centre, and not inside another civilization's territory. A civilization's first 
 
 ### 7.2 Population and food
 
-- Each person **eats 3 food** per turn and **works 2 tiles**.
+- Each person **eats 1 food** per turn and **works 2 tiles**. Soldiers and prisoners eat 1 each
+  at the settlement that feeds them. The settlement panel shows the full breakdown: food
+  produced, minus people, soldiers and prisoners, minus losses to unrest and the hub's share.
 - Surplus food fills the food store. When the store reaches the growth threshold, population
   grows by 1 and the store empties (Granary keeps 25%).
   Growth threshold: `15 + 6·(pop − 1) + (pop − 1)^1.6`, rounded down.
@@ -299,8 +300,8 @@ Projects are production items aimed at one tile in the settlement's territory, c
 | Repair           | 10               |
 | Rush development | 15               |
 
-While a project is in production it takes **1 person off tile work** as labour. Improving land
-competes directly with food and growth.
+Projects cost production only, like buildings; every worked tile keeps its output during
+construction, and the improvement's bonus is added to the tile when it completes.
 
 ### 8.4 Roads
 
@@ -429,7 +430,7 @@ territory, +25 in an own settlement.
 - A military unit destroyed by melee, a garrison in a captured settlement, and captured Migrants
   become **prisoners** of the captor: one per person. Each is held in the captor's settlement
   nearest to where it was taken.
-- Prisoners work no tiles and eat 2 food per turn from their holding settlement. They do not count
+- Prisoners work no tiles and eat 1 food per turn from their holding settlement. They do not count
   toward score or stability.
 - For each prisoner the captor can:
   - **Ransom**: offer it to its civilization for 30 gold (+10 per rank above Recruit). If accepted,
@@ -768,7 +769,7 @@ it takes in changed form, and what it leaves out.
 | Fixed 3-tile working radius         | Reach measured in travel cost, growing with tier                          |
 | Settler unit, built with production | Migrants, which cost people and can also join a settlement                |
 | Military units cost production and gold upkeep | Every unit costs a person; upkeep is food from its home settlement |
-| Worker unit builds improvements     | Auto-development of worked tiles; projects that take labour from population |
+| Worker unit builds improvements     | Auto-development of worked tiles; settlement projects paid in production |
 | One citizen works one tile          | One person works two tiles at finer scale                                 |
 | Happiness                           | Stability, which also drives migration and stalls tier upgrades           |
 | Open borders allow unit passage     | Border policy controls migration; unit passage follows war/peace          |

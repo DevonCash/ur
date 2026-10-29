@@ -91,7 +91,7 @@
       <button disabled={p.turns < PRISONER_SETTLE_TURNS} title={`Settle after ${PRISONER_SETTLE_TURNS} turns`} onclick={() => act({ type: 'settlePrisoner', prisoner: p.id })}>Settle</button>
     </div>
   {:else}
-    <p class="muted">None. Units killed in melee and captured migrants become prisoners; each eats 2 food.</p>
+    <p class="muted">None. Units killed in melee and captured migrants become prisoners; each eats 1 food.</p>
   {/each}
 </Modal>
 
