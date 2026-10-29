@@ -30,10 +30,12 @@ Tracks progress against [DESIGN.md](DESIGN.md) §8. Check items off as they land
 - [ ] Migrants unit: leave (costs pop), found camp, join settlement; min-distance rule
 - [ ] Tier ladder: sustained-population upgrade/downgrade with progress bar
 - [ ] Multi-tile footprint: urban tiles expand on tier-up
+- [ ] Shared terrain travel-cost table (units + settlements)
+- [ ] Reach: Dijkstra isochrone per settlement, overlap resolution, recompute on change
 - [ ] Tile yields, worked-tile auto-assignment + manual override
 - [ ] Food storage and growth
 - [ ] Production queue (single item), units + buildings
-- [ ] Culture-driven border growth
+- [ ] Borders from reach + culture-driven growth beyond it
 - [ ] Settlement screen
 
 ## M4 Tech & improvements

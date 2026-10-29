@@ -31,7 +31,7 @@ develops; none of them is load-bearing alone.
 ```
 Turn start → yields collected (food, production, gold, science)
   → player: move units, set settlement production, pick research, choose settlement projects
-  → end turn → AI turns → world events (floods, border growth) → next turn
+  → end turn → AI turns → world events (border growth, migration) → next turn
 ```
 
 Session goal for the prototype: a full game on a small map in **60–90 minutes**.
@@ -46,8 +46,8 @@ not a whole district. Consequences, all first guesses for tuning:
 
 - **Settlements occupy space.** Footprint grows with tier (§4.5): a City sprawls across several
   urban tiles, visibly replacing farmland.
-- **Distances scale up.** Work radii, settlement spacing, unit moves and ranged ranges are roughly
-  2× Civ's.
+- **Distances scale up.** Settlement reach, spacing, unit moves and ranged ranges are roughly
+  2× Civ's. Reach is measured in travel cost, not tiles (§4.5).
 - **The world is a region, not a continent.** Same map tile count budget buys a smaller area: a
   few river valleys and the land between them.
 - **Terrain reads at human scale.** Single hills, fords, groves and marsh patches matter for
@@ -91,17 +91,40 @@ canals are parked in §10.)
 
 Settlements replace fixed cities. They climb a tier ladder by **sustaining** population.
 
-| Tier    | Pop to reach | Footprint (tiles) | Work radius | Building slots | Unlocks                      |
-|---------|--------------|-------------------|-------------|----------------|------------------------------|
-| Camp    | 1            | 1                 | 2           | 0              | Migrants, Scout              |
-| Village | 3            | 1                 | 3           | 2              | Military units, borders grow |
-| Town    | 6            | 3                 | 4           | 4              | Walls, ranged attack         |
-| City    | 10           | 7                 | 5           | 6              | Wonders, advanced units      |
+| Tier    | Pop to reach | Footprint (tiles) | Reach (travel) | Building slots | Unlocks                   |
+|---------|--------------|-------------------|----------------|----------------|---------------------------|
+| Camp    | 1            | 1                 | 2              | 0              | Migrants, Scout           |
+| Village | 3            | 1                 | 3              | 2              | Military units, borders   |
+| Town    | 6            | 3                 | 4              | 4              | Walls, ranged attack      |
+| City    | 10           | 7                 | 5              | 6              | Wonders, advanced units   |
 
 Footprint tiles are urban: they yield production and gold, not food, and expand automatically onto
 the best adjacent tiles on tier-up. Buildings live in footprint tiles.
 
 Numbers are first guesses for tuning.
+
+**Reach** replaces a fixed work radius. A settlement can work any tile whose cheapest travel cost
+from its footprint is within its tier's reach budget — an isochrone, not a circle. Travel cost uses
+the **same terrain table as unit movement** (§4.7), so players learn one rule:
+
+| Terrain                              | Travel cost |
+|--------------------------------------|-------------|
+| Road                                 | 0.5         |
+| Grassland, plains, desert, tundra    | 1           |
+| Hills, forest                        | 2           |
+| Marsh                                | 3           |
+| River crossing (no ford/road)        | +1          |
+| Mountain, water                      | impassable  |
+
+Consequences:
+
+- Open plains give a wide footprint; settlements in hills or forest stay compact.
+- Roads extend reach: a road project is how a settlement claims a distant mine or valley.
+- Mountains and marshes form natural borders between settlements and civilizations.
+- Where two settlements' reaches overlap, a tile belongs to whichever reaches it more cheaply
+  (owner's existing claim wins ties). Contested tiles between civilizations show on the map.
+- Reach recomputes (Dijkstra over a small area) only when roads, footprint or tier change.
+- The settlement screen shades reachable tiles and tooltips show "travel 2.5 of 4".
 
 - **Upgrade**: hold population ≥ the next tier's threshold for **N turns** (proposed 8). A progress
   bar shows the count.
@@ -110,8 +133,8 @@ Numbers are first guesses for tuning.
 - Population grows when stored food reaches a threshold (`15 + 6·(pop-1) + (pop-1)^1.6`, tuned
   later). Each person eats 2 food.
 - Minimum 6 tiles between settlements.
-- Borders start at radius 2 (Village+); culture buys new tiles one at a time, preferring high-yield
-  ones.
+- Borders (Village+) cover the settlement's reach; culture adds tiles beyond it one at a time,
+  preferring cheap-to-reach, high-yield ones.
 - One production item at a time.
 - Settlements have HP; Town+ with walls has a ranged attack. Captured at 0 HP by a melee unit.
 
@@ -140,8 +163,8 @@ integrated; a majority-foreign settlement can defect.
 ### 4.7 Units
 
 One military unit and one civilian unit per tile; at Ur's scale a unit is a company, not an army,
-so a real force spans several tiles. Movement points; terrain costs (hills/forest/marsh = 2, river
-crossing ends movement except at fords). Zone of control: entering a tile adjacent to an enemy
+so a real force spans several tiles. Movement points; terrain costs from the travel table in
+§4.5 (river crossing ends movement except at fords or roads). Zone of control: entering a tile adjacent to an enemy
 costs all remaining moves.
 
 Prototype roster:
@@ -236,7 +259,7 @@ Prototype: war/peace state and open/closed borders per neighbour. Declare war, p
 - Full-window map canvas with pan (drag), zoom (wheel/pinch), and keyboard shortcuts.
 - Top bar: yields per turn, stability, current research, turn number, End Turn button.
 - Right panel: selected unit or settlement detail.
-- Settlement screen: tier progress, tile yield overlay, worked tiles, production picker,
+- Settlement screen: tier progress, reach overlay, tile yield overlay, worked tiles, production picker,
   building slots, migration levers.
 - Migration log and a map overlay showing net flows between settlements.
 - Tech tree screen.
@@ -343,6 +366,7 @@ See [CHECKLIST.md](CHECKLIST.md) for the tracked task list.
 5. Turn limit and map size — is 150 turns on 80×52 the right length for 60–90 minutes?
 6. Should migration (M7) move earlier, since tiers depend on population pressure?
 7. Do auto-development and projects leave enough agency over tile improvement?
+8. Is the reach isochrone readable enough on screen, or does it need a simplified display?
 
 ## 10. Idea backlog
 
