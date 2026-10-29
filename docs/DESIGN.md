@@ -157,8 +157,8 @@ Settlements climb a ladder of four tiers by **sustaining** population.
 | Tier    | Population | Footprint | Reach budget | Building slots | Unlocks                                  |
 |---------|------------|-----------|--------------|----------------|------------------------------------------|
 | Camp    | 1          | 1 tile    | 2            | 0              | Migrants, Scout, Warrior, projects       |
-| Village | 3          | 1 tile    | 3            | 2              | All military units; produces culture     |
-| Town    | 6          | 3 tiles   | 4            | 4              | Walls give a ranged attack               |
+| Village | 3          | 1 tile    | 3            | 2              | Slinger; produces culture                |
+| Town    | 6          | 3 tiles   | 4            | 4              | Chariot; Walls give a ranged attack      |
 | City    | 10         | 7 tiles   | 5            | 6              | National wonder                          |
 
 - **Upgrade**: when population has been at or above the next tier's threshold for **8
