@@ -24,6 +24,8 @@ Check items off as they land.
 
 ## M2 Units & movement (§9.1, §5.6)
 - [ ] Unit model, stacking rules (1 military + 1 civilian)
+- [ ] Units cost a person; home settlement, food upkeep, disband/rehome (§9.3)
+- [ ] Garrison counts toward tier thresholds (§7.3)
 - [ ] Pathfinding with travel costs, river crossings, fords, ZOC
 - [ ] Select/move UI with path preview
 - [ ] Vision rules + fog of war (unexplored / explored / visible)
@@ -50,7 +52,7 @@ Check items off as they land.
 - [ ] Project labour: running project removes 1 person from tile work
 - [ ] Roads + auto-roads
 - [ ] Strategic gating (Copper, Horses) and luxuries (Dates, Lapis)
-- [ ] Gold income, unit/building upkeep, bankruptcy penalty
+- [ ] Gold income, building upkeep, bankruptcy penalty
 - [ ] Stability formula + bands, top-bar tooltip
 
 ## M5 Combat & diplomacy (§9.5–9.6, §7.10, §12)
@@ -64,7 +66,7 @@ Check items off as they land.
 
 ## M6 AI (§14)
 - [ ] Settle-site scoring (sampled) + expansion
-- [ ] Hold-for-tier rule; production and research choices
+- [ ] Hold-for-tier rule; army-share target; production and research choices
 - [ ] Defend/attack behaviour
 - [ ] War/peace and border-policy decisions
 - [ ] Headless AI-vs-AI full game test

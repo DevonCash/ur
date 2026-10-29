@@ -13,16 +13,17 @@ from camps into cities, research technologies, build up the land around them, an
 rival civilizations through expansion, the pull of a well-run society, and war. A game ends when
 one civilization holds every rival capital or when the turn limit is reached.
 
-The central resource is **people**. Population works the land, staffs construction projects,
-founds new settlements, and moves between settlements, including between civilizations, toward
+The central resource is **people**, and the game is about how you allocate them. Population works
+the land, staffs construction projects, fills the ranks of every military unit, founds new
+settlements, and moves between settlements, including between civilizations, toward
 whichever places offer the better life. A settlement's size and status depend on keeping people.
 
 ## 2. Pillars
 
 1. **Every turn has a meaningful decision, and the turn is short.** No busywork; automate what
    isn't a choice.
-2. **People are the scarce resource.** Growing a settlement, expanding to new land, and improving
-   that land all draw on the same population.
+2. **People are the scarce resource.** Growing a settlement, expanding to new land, improving
+   that land and fielding an army all draw on the same population.
 
 ## 3. Scale
 
@@ -162,6 +163,8 @@ Settlements climb a ladder of four tiers by **sustaining** population.
 - **Downgrade**: when population has been below the current tier's threshold for **8 consecutive
   turns**, the settlement drops a tier. Camps never downgrade.
 - **Stagnation**: while civilization stability is negative, upgrade counters do not advance.
+- **Garrison**: military units inside their home settlement's footprint count toward its
+  population for tier thresholds (not for tile work or food). An army in the field does not.
 - The settlement panel shows both counters as progress bars.
 
 ### 7.4 Footprint
@@ -295,27 +298,38 @@ working and the unit gains 10 gold. Repair is a project.
 
 ### 9.2 Roster
 
-| Unit      | Class    | Cost | Strength | Ranged (range) | Moves | Requires            |
-|-----------|----------|------|----------|----------------|-------|---------------------|
-| Migrants  | Civilian | 20 + people | – | –             | 4     | –                   |
-| Scout     | Recon    | 20   | 4        | –              | 6     | –                   |
-| Warrior   | Melee    | 30   | 8        | –              | 4     | –                   |
-| Slinger   | Ranged   | 35   | 5        | 7 (3)          | 4     | Hunting             |
-| Spearman  | Melee    | 50   | 11       | –              | 4     | Bronze, Copper      |
-| Bowman    | Ranged   | 50   | 7        | 10 (4)         | 4     | Archery             |
-| Chariot   | Mounted  | 55   | 12       | –              | 8     | Wheel, Horses       |
-| Swordsman | Melee    | 75   | 15       | –              | 4     | Ironworking         |
+| Unit      | Class    | People | Prod | Strength | Ranged (range) | Moves | Requires        |
+|-----------|----------|--------|------|----------|----------------|-------|-----------------|
+| Migrants  | Civilian | 1–2    | 20   | –        | –              | 4     | –               |
+| Scout     | Recon    | 1      | 20   | 4        | –              | 6     | –               |
+| Warrior   | Melee    | 1      | 30   | 8        | –              | 4     | –               |
+| Slinger   | Ranged   | 1      | 35   | 5        | 7 (3)          | 4     | Hunting         |
+| Spearman  | Melee    | 1      | 50   | 11       | –              | 4     | Bronze, Copper  |
+| Bowman    | Ranged   | 1      | 50   | 7        | 10 (4)         | 4     | Archery         |
+| Chariot   | Mounted  | 1      | 55   | 12       | –              | 8     | Wheel, Horses   |
+| Swordsman | Melee    | 1      | 75   | 15       | –              | 4     | Ironworking     |
 
 Spearmen get +50% strength against Chariots.
 
-### 9.3 Upkeep
+### 9.3 Recruitment and upkeep
 
-Each civilization supports one military unit per settlement for free. Each further military unit
-costs 1 gold per turn.
+Every unit is made of people.
+
+- Training a military unit or Scout takes **1 person** from the settlement when the unit is
+  complete, in addition to its production cost. A settlement needs at least 2 people to train a
+  unit; it cannot empty itself.
+- The settlement becomes the unit's **home**. Each unit costs its home **2 food per turn**
+  (soldiers partly forage). If the home's food store is empty and it cannot pay, the unit loses
+  10 HP per turn.
+- A unit that dies loses its person.
+- **Disbanding** a unit inside own territory returns its person to the nearest own settlement
+  within 6 travel; elsewhere the person is lost.
+- A unit can **rehome** to another own settlement it stands in.
 
 ### 9.4 Actions
 
-Move, attack, fortify (+25% defence from the next turn until it moves), sleep, skip, pillage.
+Move, attack, fortify (+25% defence from the next turn until it moves), sleep, skip, pillage,
+disband, rehome.
 Migrants: found camp, join settlement.
 
 ### 9.5 Combat
@@ -394,7 +408,7 @@ with open borders; otherwise they are lost. A besieged settlement loses 1 person
 ### 11.1 Gold
 
 Income from urban tiles, worked coast, lake and luxury tiles, Markets and pillaging. Expenses are
-unit upkeep (§9.3) and building upkeep (§7.9). If the treasury is empty and income is negative,
+building upkeep (§7.9). Units are paid for in people and food, not gold (§9.3). If the treasury is empty and income is negative,
 every settlement's production is reduced by 25% until it recovers.
 
 ### 11.2 Stability
@@ -406,7 +420,7 @@ stability = 4
           + 3 per distinct luxury
           + buildings (Shrine +2, Ziggurat +3)
           − 1 per settlement
-          − 1 per 3 people across the civilization (rounded down)
+          − 1 per 3 people across the civilization, soldiers included (rounded down)
           − 2 per closed border
 ```
 
@@ -456,12 +470,14 @@ knowing Foraging.
 ## 14. Players and AI
 
 - Prototype: one human against 2 AI civilizations.
-- Each civilization starts with Migrants carrying 2 people, a Warrior and a Scout, 0 gold, and
-  Foraging.
+- Each civilization starts with 4 people: Migrants carrying 2, a Warrior and a Scout (homed to
+  the first settlement once founded), 0 gold, and Foraging.
 - AI chooses by weighted scoring each turn:
   - **Expand**: send Migrants to the best-scored site (food and production in prospective reach,
     fresh water, distance from rivals), sampled from candidates instead of every tile.
-  - **Hold**: stop building Migrants in a settlement close to its next tier.
+  - **Hold**: stop building Migrants or units in a settlement close to its next tier.
+  - **Army size**: keep military people at a target share of population (10% at peace, 25% at
+    war), recruiting from settlements furthest above their tier threshold.
   - **Defend**: garrison settlements with enemy units within 5 tiles.
   - **Attack**: declare war on the weakest neighbour when its military strength ratio is above 1.5.
   - **Policy**: close borders to a neighbour when net outflow to it exceeds 1 person per 5 turns.
@@ -475,7 +491,7 @@ knowing Foraging.
 - **Score**: at the end of turn 150, highest score wins.
 
 ```
-score = 4 × population
+score = 4 × people (settlements and units)
       + tier points (Camp 1, Village 2, Town 4, City 8)
       + 5 × techs known
       + 0.5 × territory tiles
@@ -626,7 +642,7 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 - Buildings with yield effects; one national wonder.
 - Strategic resources gating units; luxury resources feeding empire-wide contentment.
 - A tech tree as a dependency graph; science from population.
-- Gold economy with unit and building upkeep.
+- Gold economy with building upkeep.
 - War and peace between civilizations; military units barred from foreign territory in peace.
 - Conquest victory by capitals; score victory at a turn limit.
 - AI bound by the same rules.
@@ -638,6 +654,7 @@ records exactly what Ur takes, what it takes in changed form, and what it leaves
 | Cities of any size, fixed 1-tile    | Settlements in four tiers held by sustained population; multi-tile footprint |
 | Fixed 3-tile working radius         | Reach measured in travel cost, growing with tier                          |
 | Settler unit, built with production | Migrants, which cost people and can also join a settlement                |
+| Military units cost production and gold upkeep | Every unit costs a person; upkeep is food from its home settlement |
 | Worker unit builds improvements     | Auto-development of worked tiles; projects that take labour from population |
 | One citizen works one tile          | One person works two tiles at finer scale                                 |
 | Happiness                           | Stability, which also drives migration and stalls tier upgrades           |
